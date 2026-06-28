@@ -10,7 +10,18 @@ class EnvironmentConfig {
   static String get baseUrl {
     switch (_current) {
       case Environment.dev:
-        return 'http://10.10.13.45:8000/api/v1';
+        return 'https://s8j2pdrb-8011.inc1.devtunnels.ms/api';
+      case Environment.staging:
+        return 'https://staging-api.example.com';
+      case Environment.prod:
+        return 'https://api.example.com';
+    }
+  }
+
+  static String get baseHost {
+    switch (_current) {
+      case Environment.dev:
+        return 'https://s8j2pdrb-8011.inc1.devtunnels.ms';
       case Environment.staging:
         return 'https://staging-api.example.com';
       case Environment.prod:

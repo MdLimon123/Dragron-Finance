@@ -3,11 +3,15 @@ import 'package:demo_project/app/core/widget/custom_appbar.dart';
 import 'package:demo_project/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:demo_project/app/features/refer/controller/refer_controller.dart';  
+ 
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:demo_project/app/features/profile/controller/profile_controller.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  HomePage({super.key});
+
+  final profileController = Get.put(ProfileController());
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +27,7 @@ class HomePage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               /// The heading container with greeting, date and notification
-              _headingContainer(),
+              Obx(() => _headingContainer()),
               SizedBox(height: 24),
               Text(
                 "Active Applications",
@@ -491,6 +495,21 @@ class HomePage extends StatelessWidget {
   }
 
   Widget _headingContainer() {
+    final profile = profileController.profileData.value;
+    final firstName = profile?.fullName.split(' ').first ?? 'User';
+
+    var hour = DateTime.now().hour;
+    String greeting;
+    if (hour < 12) {
+      greeting = 'Good morning,';
+    } else if (hour < 17) {
+      greeting = 'Good afternoon,';
+    } else {
+      greeting = 'Good evening,';
+    }
+
+    String formattedDate = DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now());
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 23, vertical: 24),
       width: double.infinity,
@@ -508,7 +527,7 @@ class HomePage extends StatelessWidget {
         children: [
           // Greeting text
           Text(
-            'Good afternoon,',
+            greeting,
             style: TextStyle(
               color: Color(0xFFFFFFFF).withValues(alpha: 0.75),
               fontSize: 14,
@@ -518,9 +537,9 @@ class HomePage extends StatelessWidget {
           SizedBox(height: 5),
 
           // Name with emoji
-          const Text(
-            'Sarah 👋',
-            style: TextStyle(
+          Text(
+            '$firstName 👋',
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -530,7 +549,7 @@ class HomePage extends StatelessWidget {
 
           // Date
           Text(
-            'Tuesday, April 21, 2026',
+            formattedDate,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
               fontSize: 14,

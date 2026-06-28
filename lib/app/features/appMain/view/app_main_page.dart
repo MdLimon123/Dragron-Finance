@@ -18,7 +18,7 @@ class AppMainPage extends StatelessWidget {
 
   
     final pages = [
-      const HomePage(), 
+       HomePage(), 
       
       LoanApplyPage(),
 

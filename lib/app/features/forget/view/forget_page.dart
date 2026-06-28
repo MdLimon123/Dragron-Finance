@@ -6,14 +6,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 
+import '../controller/forget_controller.dart';
+
 class ForgetPage extends StatefulWidget {
-  const ForgetPage({super.key});
+
+  const ForgetPage({super.key,});
 
   @override
   State<ForgetPage> createState() => _ForgetPageState();
 }
 
 class _ForgetPageState extends State<ForgetPage> {
+  final controller = Get.put(ForgetController());
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -85,17 +90,29 @@ class _ForgetPageState extends State<ForgetPage> {
                           ),
                         ],
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Form(
+                        key: controller.formKey,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _headingText("Email Address"),
                           SizedBox(height: 8),
                           CustomTextField(
+                            controller: controller.emailController,
                             prefixIcon: SvgPicture.asset(
                               'assets/icon/email.svg',
                             ),
                             hintText: "Enter your email address",
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return "Email address is required";
+                              }
+                              if (!GetUtils.isEmail(value.trim())) {
+                                return "Enter a valid email address";
+                              }
+                              return null;
+                            },
                           ),
                           SizedBox(height: 15),
 
@@ -120,10 +137,19 @@ class _ForgetPageState extends State<ForgetPage> {
                           ),
 
                           SizedBox(height: 15),
-                          CustomButton(onTap: () {
-                            Get.toNamed(AppRoutes.otpVerify);
-                          }, text: "Send Reset OTP"),
+                          Obx(
+                            () => CustomButton(
+                              isLoading: controller.isLoading.value,
+                              onTap: () {
+                                if (controller.formKey.currentState!.validate()) {
+                                  controller.sendResetOtp();
+                                }
+                              },
+                              text: "Send Reset OTP",
+                            ),
+                          ),
                         ],
+                        ),
                       ),
                     ),
                     SizedBox(height: 29),

@@ -6,43 +6,19 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 
+import '../controller/email_verification_controller.dart';
+
 class EmailVerificationPage extends StatefulWidget {
-  const EmailVerificationPage({super.key});
+
+  final String email;
+  const EmailVerificationPage({super.key, required this.email});
 
   @override
   State<EmailVerificationPage> createState() => _EmailVerificationPageState();
 }
 
 class _EmailVerificationPageState extends State<EmailVerificationPage> {
-  final List<TextEditingController> _otpControllers = List.generate(
-    6,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _otpFocusNodes = List.generate(6, (_) => FocusNode());
-
-  @override
-  void dispose() {
-    for (final controller in _otpControllers) {
-      controller.dispose();
-    }
-
-    for (final focusNode in _otpFocusNodes) {
-      focusNode.dispose();
-    }
-
-    super.dispose();
-  }
-
-  void _onOtpChanged(String value, int index) {
-    if (value.isNotEmpty && index < _otpFocusNodes.length - 1) {
-      _otpFocusNodes[index + 1].requestFocus();
-      return;
-    }
-
-    if (value.isEmpty && index > 0) {
-      _otpFocusNodes[index - 1].requestFocus();
-    }
-  }
+  final controller = Get.find<EmailVerificationController>();
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +82,7 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                       SizedBox(height: 4),
                       Center(
                         child: Text(
-                          "john@example.com",
+                          widget.email,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -118,41 +94,63 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: List.generate(
-                          _otpControllers.length,
+                          controller.otpControllers.length,
                           (index) => _OtpDigitField(
-                            controller: _otpControllers[index],
-                            focusNode: _otpFocusNodes[index],
-                            onChanged: (value) => _onOtpChanged(value, index),
+                            controller: controller.otpControllers[index],
+                            focusNode: controller.otpFocusNodes[index],
+                            onChanged: (value) => controller.onOtpChanged(value, index),
                           ),
                         ),
                       ),
 
                       SizedBox(height: 31),
-                      CustomButton(
-                        onTap: () {
-                          Get.toNamed(AppRoutes.mainPage);
-                        },
-                        text: "Verify Email",
+                      Obx(
+                        () => CustomButton(
+                          isLoading: controller.isLoading.value,
+                          onTap: controller.emailVerify,
+                          text: "Verify Email",
+                        ),
                       ),
                       SizedBox(height: 31),
                       Center(
-                        child: Text(
-                          "Didn't receive the code?",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            color: Color(0xFF6B7280),
+                        child: Obx(
+                          () => Text(
+                            controller.remainingSeconds.value > 0
+                                ? "Resend code in ${controller.formattedTime}"
+                                : "Didn't receive the code?",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xFF6B7280),
+                            ),
                           ),
                         ),
                       ),
                       SizedBox(height: 10),
                       Center(
-                        child: Text(
-                          "Resend Code",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFFA41F13),
+                        child: Obx(
+                          () => InkWell(
+                            onTap: (controller.remainingSeconds.value == 0 && !controller.isResending.value)
+                                ? () {
+                                    controller.resendCode();
+                                  }
+                                : null,
+                            child: controller.isResending.value
+                                ? const SizedBox(
+                                    height: 16,
+                                    width: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : Text(
+                                    "Resend Code",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: controller.remainingSeconds.value == 0
+                                          ? Color(0xFFA41F13)
+                                          : Colors.grey,
+                                    ),
+                                  ),
                           ),
                         ),
                       ),

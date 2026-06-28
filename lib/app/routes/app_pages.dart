@@ -57,7 +57,9 @@ class AppPages {
     ),
     GetPage(
       name: AppRoutes.emailVerification,
-      page: () => const EmailVerificationPage(),
+      page: () => EmailVerificationPage(
+        email: Get.arguments?['email'] ?? '',
+      ),
       binding: EmailVerificationBinding(),
     ),
     GetPage(
@@ -78,7 +80,9 @@ class AppPages {
     ),
     GetPage(
       name: AppRoutes.otpVerify,
-      page: () => const OtpVerifyPage(),
+      page: () =>  OtpVerifyPage(
+        email: Get.arguments?['email'] ?? '',
+      ),
       binding: OtpVerifyBinding(),
     ),
     GetPage(

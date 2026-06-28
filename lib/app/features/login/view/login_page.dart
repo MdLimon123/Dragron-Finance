@@ -41,7 +41,9 @@ class LoginPage extends GetView<LoginController> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Column(
+                  child: Form(
+                    key: controller.formKey,
+                    child: Column(
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -70,26 +72,54 @@ class LoginPage extends GetView<LoginController> {
                       SizedBox(height: 28),
                       _headingText("Email Address"),
                       SizedBox(height: 8),
-                      CustomTextField(hintText: "Enter your email address"),
+                      CustomTextField(
+                        controller: controller.emailController,
+                        hintText: "Enter your email address",
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return "Email address is required";
+                          }
+                          if (!GetUtils.isEmail(value.trim())) {
+                            return "Enter a valid email address";
+                          }
+                          return null;
+                        },
+                      ),
 
                       SizedBox(height: 20),
                       _headingText("Password"),
                       SizedBox(height: 8),
                       CustomTextField(
+                        controller: controller.passwordController,
                         isPassword: true,
                         hintText: "Enter your password",
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return "Password is required";
+                          }
+                          return null;
+                        },
                       ),
                       SizedBox(height: 16),
                       _rememberMe(),
                       SizedBox(height: 20),
-                      CustomButton(onTap: () {
-                        Get.toNamed(AppRoutes.mainPage);
-                      }, text: "Sign In"),
+                      Obx(
+                        () => CustomButton(
+                          isLoading: controller.isLoading.value,
+                          onTap: () {
+                            if (controller.formKey.currentState!.validate()) {
+                              controller.loginUser();
+                            }
+                          },
+                          text: "Sign In",
+                        ),
+                      ),
                       SizedBox(height: 37),
                       _orDivider(),
                       SizedBox(height: 26),
                       Center(child: _signInText()),
                     ],
+                    ),
                   ),
                 ),
               ),

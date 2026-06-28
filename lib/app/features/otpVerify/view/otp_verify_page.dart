@@ -5,43 +5,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../controller/verify_controller.dart';
+
 class OtpVerifyPage extends StatefulWidget {
-  const OtpVerifyPage({super.key});
+
+final String email;
+
+  const OtpVerifyPage({super.key, required this.email});
 
   @override
   State<OtpVerifyPage> createState() => _OtpVerifyPageState();
 }
 
 class _OtpVerifyPageState extends State<OtpVerifyPage> {
-  final List<TextEditingController> _otpControllers = List.generate(
-    6,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _otpFocusNodes = List.generate(6, (_) => FocusNode());
-
-  @override
-  void dispose() {
-    for (final controller in _otpControllers) {
-      controller.dispose();
-    }
-
-    for (final focusNode in _otpFocusNodes) {
-      focusNode.dispose();
-    }
-
-    super.dispose();
-  }
-
-  void _onOtpChanged(String value, int index) {
-    if (value.isNotEmpty && index < _otpFocusNodes.length - 1) {
-      _otpFocusNodes[index + 1].requestFocus();
-      return;
-    }
-
-    if (value.isEmpty && index > 0) {
-      _otpFocusNodes[index - 1].requestFocus();
-    }
-  }
+  final controller = Get.find<VerifyController>();
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +57,7 @@ class _OtpVerifyPageState extends State<OtpVerifyPage> {
               SizedBox(height: 8),
               Center(
                 child: Text(
-                  "john@example.com",
+                  widget.email,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -121,21 +98,68 @@ class _OtpVerifyPageState extends State<OtpVerifyPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: List.generate(
-                        _otpControllers.length,
+                        controller.otpControllers.length,
                         (index) => _OtpDigitField(
-                          controller: _otpControllers[index],
-                          focusNode: _otpFocusNodes[index],
-                          onChanged: (value) => _onOtpChanged(value, index),
+                          controller: controller.otpControllers[index],
+                          focusNode: controller.otpFocusNodes[index],
+                          onChanged: (value) => controller.onOtpChanged(value, index),
                         ),
                       ),
                     ),
 
                     SizedBox(height: 16),
-                    CustomButton(
-                      onTap: () {
-                        Get.toNamed(AppRoutes.resetPassword);
-                      },
-                      text: "Verify",
+                    Obx(
+                      () => CustomButton(
+                        isLoading: controller.isLoading.value,
+                        onTap: () {
+                          controller.verifyOtp();
+                        },
+                        text: "Verify",
+                      ),
+                    ),
+                    
+                    SizedBox(height: 20),
+                    Center(
+                      child: Obx(
+                        () => Text(
+                          controller.remainingSeconds.value > 0
+                              ? "Resend code in ${controller.formattedTime}"
+                              : "Didn't receive the code?",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Center(
+                      child: Obx(
+                        () => InkWell(
+                          onTap: (controller.remainingSeconds.value == 0 && !controller.isResending.value)
+                              ? () {
+                                  controller.resendOtp();
+                                }
+                              : null,
+                          child: controller.isResending.value
+                              ? const SizedBox(
+                                  height: 16,
+                                  width: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : Text(
+                                  "Resend Code",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: controller.remainingSeconds.value == 0
+                                        ? Color(0xFFA41F13)
+                                        : Colors.grey,
+                                  ),
+                                ),
+                        ),
+                      ),
                     ),
                   ],
                 ),

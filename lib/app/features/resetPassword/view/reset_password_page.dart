@@ -5,6 +5,8 @@ import 'package:demo_project/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../controller/reset_password_controller.dart';
+
 class ResetPasswordPage extends StatefulWidget {
   const ResetPasswordPage({super.key});
 
@@ -13,6 +15,8 @@ class ResetPasswordPage extends StatefulWidget {
 }
 
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
+  final controller = Get.put(ResetPasswordController());
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,7 +39,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 ),
               ),
 
-              SingleChildScrollView(
+              Expanded(
+                child: SingleChildScrollView(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,9 +88,11 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           ),
                         ],
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Form(
+                        key: controller.formKey,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             "New Password",
@@ -97,8 +104,18 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           ),
                           SizedBox(height: 8),
                           CustomTextField(
+                            controller: controller.newPasswordController,
                             isPassword: true,
                             hintText: "Enter your new password",
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return "New password is required";
+                              }
+                              if (value.length < 8) {
+                                return "Password must be at least 8 characters long";
+                              }
+                              return null;
+                            },
                           ),
                           SizedBox(height: 16),
                           Text(
@@ -111,20 +128,39 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           ),
                           SizedBox(height: 8), 
                           CustomTextField(
+                            controller: controller.confirmPasswordController,
                             isPassword: true,
                             hintText: "Enter your confirm password",
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return "Confirm password is required";
+                              }
+                              if (value != controller.newPasswordController.text) {
+                                return "Passwords do not match";
+                              }
+                              return null;
+                            },
                           ),
                           SizedBox(height: 24),
-                          CustomButton(onTap: () {
-                            Get.toNamed(AppRoutes.login);
-                          }, text: "Reset Password"),
+                          Obx(
+                            () => CustomButton(
+                              isLoading: controller.isLoading.value,
+                              onTap: () {
+                                if (controller.formKey.currentState!.validate()) {
+                                  controller.resetPassword();
+                                }
+                              },
+                              text: "Reset Password",
+                            ),
+                          ),
                         ],
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
+          )],
           ),
         ),
       ),

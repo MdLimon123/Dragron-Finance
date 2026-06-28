@@ -54,5 +54,19 @@ class StorageService {
     return token != null && token.isNotEmpty;
   }
 
+  // Remember Me
+  Future<void> saveCredentials(String email, String password) async {
+    await _prefs.setString(StorageKeys.savedEmail, email);
+    await _prefs.setString(StorageKeys.savedPassword, password);
+  }
+
+  String? getSavedEmail() => _prefs.getString(StorageKeys.savedEmail);
+  String? getSavedPassword() => _prefs.getString(StorageKeys.savedPassword);
+
+  Future<void> clearCredentials() async {
+    await _prefs.remove(StorageKeys.savedEmail);
+    await _prefs.remove(StorageKeys.savedPassword);
+  }
+
   Future<void> clear() => _prefs.clear();
 }

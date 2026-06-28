@@ -5,7 +5,10 @@ import 'package:demo_project/app/core/widget/custom_button.dart';
 import 'package:demo_project/app/core/widget/custom_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:demo_project/app/features/loan/view/loan_apply_step2.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import 'package:demo_project/app/features/loan/controller/loan_controller.dart';
 
 class LoanApplyStep1 extends StatefulWidget {
   const LoanApplyStep1({super.key});
@@ -16,7 +19,7 @@ class LoanApplyStep1 extends StatefulWidget {
 
 class _LoanApplyStep1State extends State<LoanApplyStep1> {
   int currentStep = 2;
-  String selectedTerm = '3yr to 30yr';
+  final controller = Get.find<LoanController>();
 
   @override
   Widget build(BuildContext context) {
@@ -79,48 +82,23 @@ class _LoanApplyStep1State extends State<LoanApplyStep1> {
                     const SizedBox(height: 24),
                     _buildLabel('Loan Amount'),
                     CustomTextField(
+                      controller: controller.loanAmountController,
                       hintText: '£20,000 to £500,000',
                       filled: true,
                       filColor: const Color(0xFFF2F4F7),
                     ),
                     const SizedBox(height: 20),
                     _buildLabel('Loan Term'),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF2F4F7),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFE0DBD8)),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: selectedTerm,
-                          isExpanded: true,
-                          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFFA41F13)),
-                          items: <String>['3yr to 30yr', '5yr to 15yr', '10yr to 20yr']
-                              .map<DropdownMenuItem<String>>((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(
-                                value,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Color(0xFF6A6460),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              selectedTerm = newValue!;
-                            });
-                          },
-                        ),
-                      ),
+                    CustomTextField(
+                      controller: controller.loanTermController,
+                      hintText: '36 months',
+                      filled: true,
+                      filColor: const Color(0xFFF2F4F7),
                     ),
                     const SizedBox(height: 20),
                     _buildLabel('Notes'),
                     CustomTextField(
+                      controller: controller.notesController,
                       hintText: 'Please share your notes...',
                       minLines: 4,
                       filled: true,
@@ -162,13 +140,16 @@ class _LoanApplyStep1State extends State<LoanApplyStep1> {
                   const SizedBox(width: 16),
                   Expanded(
                     flex: 2,
-                    child: CustomButton(
-                      onTap: () {
-                        Get.to(() => const LoanApplyStep2());
-                      },
-                      text: 'Continue',
-                      color: AppColors.activeColor,
-                      icon: const Icon(Icons.chevron_right, color: Colors.white),
+                    child: Obx(
+                      () => CustomButton(
+                        isLoading: controller.isSubmitting.value,
+                        onTap: () {
+                          controller.submitStep1();
+                        },
+                        text: 'Continue',
+                        color: AppColors.activeColor,
+                        icon: const Icon(Icons.chevron_right, color: Colors.white),
+                      ),
                     ),
                   ),
                 ],

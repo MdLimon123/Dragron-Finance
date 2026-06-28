@@ -3,11 +3,15 @@ import 'package:demo_project/app/core/widget/app_shadow.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
 import 'package:demo_project/app/features/profile/view/personal_info_page.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
+
 import 'package:get/get.dart';  
+import 'package:demo_project/app/features/profile/controller/profile_controller.dart';
+import 'package:demo_project/app/core/config/environment.dart';
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  ProfilePage({super.key});
+
+  final controller = Get.put(ProfileController());
 
   @override
   Widget build(BuildContext context) {
@@ -15,8 +19,17 @@ class ProfilePage extends StatelessWidget {
       backgroundColor: AppColors.appBackground,
       appBar: const CustomAppBar(),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+        child: Obx(() {
+          if (controller.isLoading.value) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final profile = controller.profileData.value;
+          if (profile == null) {
+            return const Center(child: Text("No profile data found"));
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -41,7 +54,7 @@ class ProfilePage extends StatelessWidget {
               const SizedBox(height: 24),
 
               // Profile Card
-              _buildProfileCard(),
+              _buildProfileCard(profile),
               const SizedBox(height: 24),
 
               // Personal Information
@@ -50,8 +63,8 @@ class ProfilePage extends StatelessWidget {
                 icon: Icons.person_outline,
                 showEdit: true,
                 children: [
-                  _buildInfoField('Full Name', 'Sarah Johnson', icon: Icons.person_outline),
-                  _buildInfoField('Email Address', 'sarah@example.com', icon: Icons.mail_outline, isLast: true),
+                  _buildInfoField('Full Name', profile.fullName, icon: Icons.person_outline),
+                  _buildInfoField('Email Address', profile.emailAddress, icon: Icons.mail_outline, isLast: true),
                 ],
               ),
               const SizedBox(height: 20),
@@ -61,8 +74,8 @@ class ProfilePage extends StatelessWidget {
                 title: 'Contact Details',
                 icon: Icons.phone_outlined,
                 children: [
-                  _buildInfoField('Phone Number', '+44 (555) 010-1234', icon: Icons.phone_outlined),
-                  _buildInfoField('Address', '123 Main St, San Francisco, CA 94105', icon: Icons.location_on_outlined, isLast: true),
+                  _buildInfoField('Phone Number', profile.phoneNumber ?? 'Not provided', icon: Icons.phone_outlined),
+                  _buildInfoField('Address', profile.location ?? 'Not provided', icon: Icons.location_on_outlined, isLast: true),
                 ],
               ),
               const SizedBox(height: 20),
@@ -72,20 +85,21 @@ class ProfilePage extends StatelessWidget {
                 title: 'Account & Security',
                 icon: Icons.shield_outlined,
                 children: [
-                  _buildAccountRow('Account Status', 'Active', isBadge: true),
-                  _buildAccountRow('Member Since', 'January 2024'),
+                  _buildAccountRow('Account Status', profile.isActive ? 'Active' : 'Inactive', isBadge: true),
+                  _buildAccountRow('Member Since', 'January 2024'), // Assuming API doesn't return this yet
                   _buildAccountRow('Two-Factor Auth', 'Enabled', isBadge: true, isLast: true),
                 ],
               ),
               const SizedBox(height: 32),
             ],
           ),
-        ),
+        );
+        }),
       ),
     );
   }
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(var profile) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -106,8 +120,10 @@ class ProfilePage extends StatelessWidget {
             height: 80,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              image: const DecorationImage(
-                image: AssetImage('assets/image/food.jpg'), // Fallback if image not found
+              image: DecorationImage(
+                image: (profile.profileImageUrl != null && profile.profileImageUrl!.isNotEmpty) 
+                    ? NetworkImage(EnvironmentConfig.baseHost + profile.profileImageUrl!) 
+                    : const AssetImage('assets/image/food.jpg') as ImageProvider,
                 fit: BoxFit.cover,
               ),
               border: Border.all(color: Colors.white.withOpacity(0.2), width: 4),
@@ -120,17 +136,17 @@ class ProfilePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Sarah Johnson',
-                  style: TextStyle(
+                Text(
+                  profile.fullName,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
                 ),
-                const Text(
-                  'sarah@example.com',
-                  style: TextStyle(
+                Text(
+                  profile.emailAddress,
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
                     color: Colors.white60,
@@ -140,13 +156,13 @@ class ProfilePage extends StatelessWidget {
                 Row(
                   children: [
                     _buildStatusBadge(
-                      label: 'Active Account',
+                      label: profile.isActive ? 'Active Account' : 'Inactive Account',
                       icon: Icons.circle,
-                      iconColor: const Color(0xFF22C55E),
+                      iconColor: profile.isActive ? const Color(0xFF22C55E) : Colors.red,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 3),
                     _buildStatusBadge(
-                      label: 'Customer',
+                      label: profile.roleLabel,
                       icon: Icons.shield_outlined,
                       iconColor: Colors.white,
                     ),

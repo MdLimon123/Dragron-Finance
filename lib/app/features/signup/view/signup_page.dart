@@ -39,10 +39,12 @@ class SignupPage extends GetView<SignupController> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                    child: Form(
+                      key: controller.formKey,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                         Center(
                           child: Text(
                             "Create Account",
@@ -68,25 +70,63 @@ class SignupPage extends GetView<SignupController> {
                         SizedBox(height: 36),
                         _headingText("Full Name"),
                         SizedBox(height: 8),
-                        CustomTextField(hintText: "Enter your full name"),
+                        CustomTextField(
+                          controller: controller.nameController,
+                          hintText: "Enter your full name",
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return "Full name is required";
+                            }
+                            return null;
+                          },
+                        ),
                         SizedBox(height: 24),
                         _headingText("Email Address"),
                         SizedBox(height: 8),
 
-                        CustomTextField(hintText: "Enter your email address"),
+                        CustomTextField(
+                          controller: controller.emailController,
+                          hintText: "Enter your email address",
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return "Email address is required";
+                            }
+                            if (!GetUtils.isEmail(value.trim())) {
+                              return "Enter a valid email address";
+                            }
+                            return null;
+                          },
+                        ),
                         SizedBox(height: 24),
                         _headingText("Phone Number"),
                         SizedBox(height: 8),
                         CustomTextField(
+                          controller: controller.phoneNumberController,
                           keyboardType: TextInputType.phone,
                           hintText: "Enter your phone number",
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return "Phone number is required";
+                            }
+                            return null;
+                          },
                         ),
                         SizedBox(height: 24),
                         _headingText("Password"),
                         SizedBox(height: 8),
                         CustomTextField(
+                          controller: controller.passwordController,
                           isPassword: true,
                           hintText: "Enter your password",
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return "Password is required";
+                            }
+                            if (value.length < 8) {
+                              return "Must be at least 8 characters";
+                            }
+                            return null;
+                          },
                         ),
                         SizedBox(height: 8),
                         Text(
@@ -130,17 +170,33 @@ class SignupPage extends GetView<SignupController> {
                           ),
                         ),
                         SizedBox(height: 24),
-                        CustomButton(
-                          onTap: () {
-                            Get.toNamed(AppRoutes.emailVerification);
-                          },
-                          text: "Create Account",
+                        Obx(
+                          () => CustomButton(
+                            isLoading: controller.isLoading.value,
+                            onTap: () {
+                              if (controller.formKey.currentState!.validate()) {
+                                if (!controller.isAgreementAccepted.value) {
+                                  Get.snackbar(
+                                    "Error",
+                                    "Please accept the Terms and Privacy Policy",
+                                    snackPosition: SnackPosition.BOTTOM,
+                                    backgroundColor: AppColors.error,
+                                    colorText: Colors.white,
+                                  );
+                                  return;
+                                }
+                                controller.signupUser();
+                              }
+                            },
+                            text: "Create Account",
+                          ),
                         ),
                         SizedBox(height: 24),
                         _orDivider(),
                         SizedBox(height: 16),
                         Center(child: _signInText()),
                       ],
+                    ),
                     ),
                   ),
                 ),

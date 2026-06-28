@@ -6,6 +6,9 @@ import 'package:demo_project/app/core/widget/app_shadow.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:demo_project/app/features/loan/view/load_apply_step1.dart';
+import 'package:demo_project/app/features/loan/controller/loan_controller.dart';
+import 'package:demo_project/app/features/loan/model/loan_type_model.dart';
+import 'package:demo_project/app/core/config/environment.dart';
 import 'package:flutter/material.dart';
 
 class LoanApplyPage extends StatefulWidget {
@@ -17,33 +20,13 @@ class LoanApplyPage extends StatefulWidget {
 
 class _LoanApplyPageState extends State<LoanApplyPage> {
   int currentStep = 1;
-  String? selectedLoanType = 'Debt Consolidation';
+  final controller = Get.put(LoanController());
 
-  final List<Map<String, dynamic>> loanTypes = [
-    {
-      'title': 'Debt Consolidation',
-      'icon': "assets/icon/sync.svg",
-      'color': const Color(0xFF4A90E2).withOpacity(0.20),
-      'iconColor': const Color(0xFF4A90E2),
-    },
-    {
-      'title': 'Debt Consolidation & Home Improvements',
-      'icon': "assets/icon/debt.svg",
-      'color': const Color(0xFF27AE60).withOpacity(0.20),
-      'iconColor': const Color(0xFF27AE60),
-    },
-    {
-      'title': 'Home Improvements',
-      'icon': "assets/icon/home.svg",
-      'color': const Color(0xFFF39C12).withOpacity(0.20),
-      'iconColor': const Color(0xFFF39C12),
-    },
-    {
-      'title': 'Other',
-      'icon': "assets/icon/other.svg",
-      'color': const Color(0xFF8E44AD).withOpacity(0.20),
-      'iconColor': const Color(0xFF8E44AD),
-    },
+  final List<Color> _iconColors = [
+    const Color(0xFF4A90E2),
+    const Color(0xFF27AE60),
+    const Color(0xFFF39C12),
+    const Color(0xFF8E44AD),
   ];
 
   @override
@@ -107,22 +90,33 @@ class _LoanApplyPageState extends State<LoanApplyPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 0.85,
-                    ),
-                    itemCount: loanTypes.length,
-                    itemBuilder: (context, index) {
-                      final type = loanTypes[index];
-                      final isSelected = selectedLoanType == type['title'];
-                      return _buildLoanTypeCard(type, isSelected);
-                    },
-                  ),
+                  Obx(() {
+                    if (controller.isLoading.value) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (controller.loanTypes.isEmpty) {
+                      return const Center(child: Text("No loan types available"));
+                    }
+                    
+                    final selectedId = controller.selectedLoanType.value?.id;
+                    
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 0.85,
+                      ),
+                      itemCount: controller.loanTypes.length,
+                      itemBuilder: (context, index) {
+                        final type = controller.loanTypes[index];
+                        final isSelected = selectedId == type.id;
+                        return _buildLoanTypeCard(type, isSelected, index);
+                      },
+                    );
+                  }),
                 ],
               ),
             ),
@@ -195,12 +189,12 @@ class _LoanApplyPageState extends State<LoanApplyPage> {
     );
   }
 
-  Widget _buildLoanTypeCard(Map<String, dynamic> type, bool isSelected) {
+  Widget _buildLoanTypeCard(LoanTypeModel type, bool isSelected, int index) {
+    final iconColor = _iconColors[index % _iconColors.length];
+    
     return GestureDetector(
       onTap: () {
-        setState(() {
-          selectedLoanType = type['title'];
-        });
+        controller.selectLoanType(type);
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -227,19 +221,24 @@ class _LoanApplyPageState extends State<LoanApplyPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: type['color'],
+                color: iconColor.withOpacity(0.20),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: SvgPicture.asset(
-                type['icon'],
-                color: type['iconColor'],
+              child: Image.network(
+                EnvironmentConfig.baseHost + type.iconImageUrl,
+                color: iconColor,
                 width: 24,
                 height: 24,
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  Icons.image_not_supported,
+                  color: iconColor,
+                  size: 24,
+                ),
               ),
             ),
         SizedBox(height: 12,),
             Text(
-              type['title'],
+              type.name,
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
