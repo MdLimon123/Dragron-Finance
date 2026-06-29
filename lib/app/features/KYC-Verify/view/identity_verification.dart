@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:demo_project/app/core/theme/app_colors.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
 import 'package:demo_project/app/features/KYC-Verify/view/check_selfie_page.dart';
+import 'package:demo_project/app/features/KYC-Verify/controller/kyc_verify_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
@@ -10,6 +12,7 @@ class IdentityVerification extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final KycVerifyController controller = Get.put(KycVerifyController());
     return Scaffold(
       backgroundColor: AppColors.appBackground,
       appBar: CustomAppBar(),
@@ -32,16 +35,16 @@ class IdentityVerification extends StatelessWidget {
                     _buildSecurityBanner(),
                     const SizedBox(height: 20),
                     // Document Type
-                    _buildDocumentType(),
+                    _buildDocumentType(controller),
                     const SizedBox(height: 20),
                     // Upload ID Photos
-                    _buildUploadPhotos(),
+                    _buildUploadPhotos(controller),
                     const SizedBox(height: 16),
                     // Tips Section
                     _buildTipsSection(),
                     const SizedBox(height: 24),
                     // Continue Button
-                    _buildContinueButton(),
+                    _buildContinueButton(controller),
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -219,7 +222,7 @@ class IdentityVerification extends StatelessWidget {
 
 
 
-  Widget _buildDocumentType() {
+  Widget _buildDocumentType(KycVerifyController controller) {
     return Container(
       padding: const EdgeInsets.all(21),
       width: double.infinity,
@@ -255,21 +258,26 @@ class IdentityVerification extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Row(
+          Obx(() => Row(
             children: [
-              Expanded(child: _buildDocTypeButton('Driving License', true)),
+              Expanded(child: _buildDocTypeButton('Driving License', controller)),
               const SizedBox(width: 10),
-              Expanded(child: _buildDocTypeButton('Passport', false)),
+              Expanded(child: _buildDocTypeButton('Passport', controller)),
             ],
-          ),
+          )),
         ],
       ),
     );
   }
 
-  Widget _buildDocTypeButton(String label, bool isSelected) {
+
+
+  Widget _buildDocTypeButton(String label, KycVerifyController controller) {
+    bool isSelected = controller.selectedDocumentType.value == label;
     return GestureDetector(
-      onTap: () {},
+      onTap: () {
+        controller.selectDocumentType(label);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
@@ -294,7 +302,7 @@ class IdentityVerification extends StatelessWidget {
     );
   }
 
-  Widget _buildUploadPhotos() {
+  Widget _buildUploadPhotos(KycVerifyController controller) {
     return Container(
       padding: const EdgeInsets.all(21),
       width: double.infinity,
@@ -330,78 +338,95 @@ class IdentityVerification extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _buildUploadCard(
+          Obx(() => _buildUploadCard(
             'Front Side',
             'Clear photo of the front of your ID',
             Icons.description_outlined,
-          ),
+            controller.pickFrontImage,
+            controller.frontImage.value,
+          )),
           const SizedBox(height: 10),
-          _buildUploadCard(
+          Obx(() => _buildUploadCard(
             'Back Side',
             'Clear photo of the back of your ID',
             Icons.flip_camera_android_outlined,
-          ),
+            controller.pickBackImage,
+            controller.backImage.value,
+          )),
         ],
       ),
     );
   }
 
-  Widget _buildUploadCard(String title, String subtitle, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Color(0xFFFAF5F1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFE0DBD8), width: 1.08),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Color(0xFFE0DBD8),
+  Widget _buildUploadCard(String title, String subtitle, IconData icon, VoidCallback onTap, File? imageFile) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Color(0xFFFAF5F1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Color(0xFFE0DBD8), width: 1.08),
+        ),
+        child: imageFile != null
+          ? ClipRRect(
               borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, size: 24),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF292F36),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-              color: Color(0xFF9A9490),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SvgPicture.asset("assets/icon/upload_fill.svg"),
-              const SizedBox(width: 6),
-              Text(
-                'Tap to upload',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFFA41F13),
-                ),
+              child: Image.file(
+                imageFile,
+                height: 150,
+                width: double.infinity,
+                fit: BoxFit.cover,
               ),
-            ],
-          ),
-        ],
+            )
+          : Column(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Color(0xFFE0DBD8),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, size: 24),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF292F36),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF9A9490),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SvgPicture.asset("assets/icon/upload_fill.svg"),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Tap to upload',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFFA41F13),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
       ),
     );
   }
@@ -498,8 +523,7 @@ class IdentityVerification extends StatelessWidget {
     );
   }
 
-  Widget _buildContinueButton() {
-
+  Widget _buildContinueButton(KycVerifyController controller) {
     return Container(
       width: double.infinity,
       height: 56,
@@ -524,27 +548,33 @@ class IdentityVerification extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: () {
-            Get.to(() => const CheckSelfiePage());
+            controller.uploadKycDocs();
           },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Text(
-                'Continue to Selfie',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(width: 8),
-              Icon(Icons.arrow_forward, size: 18, color: Colors.white),
+            children: [
+              Obx(() => controller.isLoading.value 
+                  ? const SizedBox(
+                      width: 24, 
+                      height: 24, 
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                    )
+                  : const Text(
+                      'Continue to Selfie',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    )),
+              const SizedBox(width: 8),
+              Obx(() => controller.isLoading.value 
+                  ? const SizedBox.shrink() 
+                  : const Icon(Icons.arrow_forward, size: 18, color: Colors.white)),
             ],
           ),
         ),
       ),
     );
- 
- 
   }
 }

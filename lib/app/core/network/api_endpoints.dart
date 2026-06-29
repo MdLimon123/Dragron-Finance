@@ -17,8 +17,12 @@ class ApiEndpoints {
  static String updateLoanApplication(String id) => "/customer/loan-applications/$id/";
 
  static const  String  profile = "/auth/me/";
+ static const String uploadKycDocs ="/kyc/upload-id/";
 
- 
+ static const String uploadSelfie = "/kyc/upload-selfie/";
+ static const String getKycStatus = "/kyc/me/";
+ static const String submitKyc = "/kyc/submit/";
+ static const String updateProfile = "/auth/me/";
 
   // Products
   static const String products = '/products/';

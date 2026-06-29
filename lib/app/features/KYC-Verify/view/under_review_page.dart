@@ -1,5 +1,7 @@
 import 'package:demo_project/app/core/theme/app_colors.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
+import 'package:demo_project/app/features/KYC-Verify/controller/kyc_verify_controller.dart';
+import 'package:demo_project/app/features/KYC-Verify/model/kyc_status_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -8,23 +10,33 @@ class UnderReviewPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final KycVerifyController controller = Get.find<KycVerifyController>();
+
     return Scaffold(
       backgroundColor: AppColors.appBackground,
       appBar: CustomAppBar(),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(context),
+      body: Obx(() {
+        if (controller.isLoadingStatus.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-            SizedBox(height: 24),
+        final statusData = controller.kycResponse.value?.data;
+        final screenData = statusData?.screen;
 
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Container(
-                width: double.infinity,
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context, screenData),
+
+              SizedBox(height: 24),
+
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Container(
+                  width: double.infinity,
 
                 padding: const EdgeInsets.all(33),
                 decoration: BoxDecoration(
@@ -80,9 +92,9 @@ class UnderReviewPage extends StatelessWidget {
                     const SizedBox(height: 24),
 
                     // Title
-                    const Text(
-                      'Under Review',
-                      style: TextStyle(
+                    Text(
+                      screenData?.underReviewTitle ?? 'Under Review',
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF292F36),
@@ -91,29 +103,14 @@ class UnderReviewPage extends StatelessWidget {
                     const SizedBox(height: 10),
 
                     // Subtitle
-                    RichText(
+                    Text(
+                      screenData?.underReviewMessage ?? 'Your documents have been submitted and are being reviewed by Dragon Finance.',
                       textAlign: TextAlign.center,
-                      text: const TextSpan(
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF6A6460),
-                          fontWeight: FontWeight.w400,
-                          height: 1.55,
-                        ),
-                        children: [
-                          TextSpan(
-                            text:
-                                'Your documents have been submitted and are being reviewed by ',
-                          ),
-                          TextSpan(
-                            text: 'Dragon Finance',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF292F36),
-                            ),
-                          ),
-                          TextSpan(text: '.'),
-                        ],
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF6A6460),
+                        fontWeight: FontWeight.w400,
+                        height: 1.55,
                       ),
                     ),
                     const SizedBox(height: 46),
@@ -183,8 +180,10 @@ class UnderReviewPage extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: ElevatedButton(
-                        onPressed: () {},
+                      child: Obx(() => ElevatedButton(
+                        onPressed: controller.isSubmittingKyc.value 
+                            ? null 
+                            : controller.submitKyc,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
@@ -195,21 +194,32 @@ class UnderReviewPage extends StatelessWidget {
                           ),
                           elevation: 0,
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              'Return to Dashboard',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
+                            if (controller.isSubmittingKyc.value)
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            else ...[
+                              const Text(
+                                'Return to Dashboard',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 10),
-                            Text('→', style: TextStyle(fontSize: 18)),
+                              const SizedBox(width: 10),
+                              const Text('→', style: TextStyle(fontSize: 18)),
+                            ]
                           ],
                         ),
-                      ),
+                      )),
                     ),
                   ],
                 ),
@@ -217,11 +227,12 @@ class UnderReviewPage extends StatelessWidget {
             ),
           ],
         ),
-      ),
+      );
+      }),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, ScreenData? screenData) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -263,8 +274,8 @@ class UnderReviewPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Identity Verification',
-              style: TextStyle(
+              screenData?.title ?? 'Identity Verification',
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF292F36),
@@ -272,8 +283,8 @@ class UnderReviewPage extends StatelessWidget {
             ),
 
             Text(
-              'KYC — Know Your Customer',
-              style: TextStyle(
+              screenData?.subtitle ?? 'KYC — Know Your Customer',
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
                 color: Color(0xFF6A6460),

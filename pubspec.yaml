@@ -21,6 +21,7 @@ dependencies:
   connectivity_plus: ^6.1.4
   flutter_svg: ^2.2.4
   intl: ^0.20.3
+  image_picker: ^1.2.2
 
 
 dev_dependencies:

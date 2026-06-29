@@ -1,5 +1,7 @@
+
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
 import 'package:demo_project/app/features/KYC-Verify/view/under_review_page.dart';
+import 'package:demo_project/app/features/KYC-Verify/controller/kyc_verify_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
@@ -9,6 +11,7 @@ class CheckSelfiePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final KycVerifyController controller = Get.find<KycVerifyController>();
     return Scaffold(
       appBar: const CustomAppBar(),
       body: Padding(
@@ -31,7 +34,7 @@ class CheckSelfiePage extends StatelessWidget {
                     _buildSecurityBanner(),
                     SizedBox(height: 20),
 
-                    _selfieVerification(),
+                    _selfieVerification(controller),
                     SizedBox(height: 16),
 
                     Container(
@@ -142,7 +145,7 @@ class CheckSelfiePage extends StatelessWidget {
                     ),
 
                     SizedBox(height: 16),
-                    _buildContinueButton(),
+                    _buildContinueButton(controller),
                   ],
                 ),
               ),
@@ -153,7 +156,7 @@ class CheckSelfiePage extends StatelessWidget {
     );
   }
 
-  Widget _selfieVerification() {
+  Widget _selfieVerification(KycVerifyController controller) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(21),
@@ -191,57 +194,69 @@ class CheckSelfiePage extends StatelessWidget {
           ),
 
           SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 34),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Color(0xFF1C2228),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Color(0xFFE0DBD8), width: 1.08),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Center(
-                  child: Container(
-                    height: 56,
-                    width: 56,
-                    decoration: BoxDecoration(
-                      color: Color(0xFFFFFFFF).withValues(alpha: 0.10),
-                      shape: BoxShape.circle,
+          GestureDetector(
+            onTap: controller.pickSelfieFromCamera,
+            child: Obx(() => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 34),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Color(0xFF1C2228),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Color(0xFFE0DBD8), width: 1.08),
+              ),
+              child: controller.selfieImage.value != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      controller.selfieImage.value!,
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14.0),
-                      child: SvgPicture.asset('assets/icon/camera.svg'),
-                    ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Center(
+                        child: Container(
+                          height: 56,
+                          width: 56,
+                          decoration: BoxDecoration(
+                            color: Color(0xFFFFFFFF).withValues(alpha: 0.10),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(14.0),
+                            child: SvgPicture.asset('assets/icon/camera.svg'),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Center(
+                        child: Text(
+                          'Tap to open camera',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFFFFFFFF).withValues(alpha: 0.70),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Center(
+                        child: Text(
+                          'or upload a selfie photo',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFFFFFFFF).withValues(alpha: 0.40),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                SizedBox(height: 12),
-
-                Center(
-                  child: Text(
-                    'Tap to open camera',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFFFFFFFF).withValues(alpha: 0.70),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 12),
-                Center(
-                  child: Text(
-                    'or upload a selfie photo',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFFFFFFFF).withValues(alpha: 0.40),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            )),
           ),
 
           SizedBox(height: 16),
@@ -262,9 +277,7 @@ class CheckSelfiePage extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 borderRadius: BorderRadius.circular(14),
-                onTap: () {
-                  Get.to(() => const CheckSelfiePage());
-                },
+                onTap: controller.pickSelfieFromGallery,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -495,7 +508,7 @@ class CheckSelfiePage extends StatelessWidget {
     );
   }
 
-  Widget _buildContinueButton() {
+  Widget _buildContinueButton(KycVerifyController controller) {
     return Container(
       width: double.infinity,
       height: 56,
@@ -520,21 +533,29 @@ class CheckSelfiePage extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: () {
-            Get.to(() => const UnderReviewPage());
+            controller.uploadSelfie();
           },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SvgPicture.asset('assets/icon/star.svg'),
+              Obx(() => controller.isLoading.value
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : SvgPicture.asset('assets/icon/star.svg')),
               SizedBox(width: 6),
-              Text(
-                ' Submit for Verification',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
+              Obx(() => controller.isLoading.value
+                  ? const SizedBox.shrink()
+                  : const Text(
+                      ' Submit for Verification',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    )),
             ],
           ),
         ),

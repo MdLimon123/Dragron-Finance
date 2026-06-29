@@ -884,7 +884,7 @@ class _BookCallPageState extends State<BookCallPage> {
                 ),
               ),
 
-              SizedBox(width: 12),
+              SizedBox(width: 6),
 
               Expanded(
                 child: Column(

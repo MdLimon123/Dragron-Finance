@@ -1,3 +1,5 @@
+import 'package:demo_project/app/core/config/environment.dart';
+
 class ProfileModel {
   final String id;
   final String fullName;
@@ -39,7 +41,7 @@ class ProfileModel {
       phoneNumber: json['phone_number'],
       profileImage: json['profile_image'],
       profileImagePath: json['profile_image_path'],
-      profileImageUrl: json['profile_image_url'],
+      profileImageUrl: _cleanUrl(json['profile_image_url']),
       department: json['department'],
       location: json['location'],
       role: json['role'] ?? '',
@@ -48,6 +50,14 @@ class ProfileModel {
       isActive: json['is_active'] ?? false,
       header: json['header'] != null ? ProfileHeader.fromJson(json['header']) : null,
     );
+  }
+
+  static String? _cleanUrl(String? url) {
+    if (url == null) return null;
+    if (url.startsWith('http://localhost:8011')) {
+      return url.replaceFirst('http://localhost:8011', EnvironmentConfig.baseHost);
+    }
+    return url;
   }
 }
 

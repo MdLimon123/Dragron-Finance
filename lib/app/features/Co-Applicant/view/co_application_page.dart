@@ -24,9 +24,17 @@ class CoApplicationPage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(Icons.arrow_back, color: Color(0xFF292F36)),
+                InkWell(
+                  onTap: () {
+                    Get.back();
+                  },
+                  child: Icon(Icons.arrow_back, color: Color(0xFF292F36))),
 
-                Icon(Icons.close, color: Color(0xFF292F36)),
+                InkWell(
+                  onTap: () {
+                        Get.back();
+                  },
+                  child: Icon(Icons.close, color: Color(0xFF292F36))),
               ],
             ),
             SizedBox(height: 14),

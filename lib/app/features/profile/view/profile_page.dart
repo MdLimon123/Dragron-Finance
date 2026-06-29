@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';  
 import 'package:demo_project/app/features/profile/controller/profile_controller.dart';
-import 'package:demo_project/app/core/config/environment.dart';
+
 
 class ProfilePage extends StatelessWidget {
   ProfilePage({super.key});
@@ -120,15 +120,31 @@ class ProfilePage extends StatelessWidget {
             height: 80,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              image: DecorationImage(
-                image: (profile.profileImageUrl != null && profile.profileImageUrl!.isNotEmpty) 
-                    ? NetworkImage(EnvironmentConfig.baseHost + profile.profileImageUrl!) 
-                    : const AssetImage('assets/image/food.jpg') as ImageProvider,
-                fit: BoxFit.cover,
-              ),
               border: Border.all(color: Colors.white.withOpacity(0.2), width: 4),
             ),
-          
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: (profile.profileImageUrl != null && profile.profileImageUrl!.isNotEmpty)
+                  ? Image.network(
+                      profile.profileImageUrl!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) => Image.asset('assets/image/food.jpg', fit: BoxFit.cover),
+                    )
+                  : Image.asset('assets/image/food.jpg', fit: BoxFit.cover),
+            ),
           ),
           const SizedBox(width: 20),
           // User Info

@@ -136,12 +136,116 @@ class BaseApiService {
   }
 
   dynamic _processResponse(http.Response response) {
-    final body = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+    dynamic body;
+    if (response.body.isNotEmpty) {
+      try {
+        body = jsonDecode(response.body);
+      } catch (e) {
+        body = response.body; // Fallback to raw string if it's not valid JSON
+      }
+    }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
     }
 
     throw ApiException.fromStatusCode(response.statusCode, body);
+  }
+
+  Future<dynamic> postMultipart(
+    String endpoint, {
+    Map<String, String>? fields,
+    Map<String, File>? files,
+    Map<String, String>? extraHeaders,
+  }) async {
+    if (!await _connectivity.hasConnection) {
+      throw ApiException.noInternet();
+    }
+    try {
+      final request = http.MultipartRequest('POST', _buildUri(endpoint));
+      
+      final headers = {..._headers, ...?extraHeaders};
+      headers.remove('Content-Type'); // Let http client set the correct content type with boundary
+      request.headers.addAll(headers);
+
+      if (fields != null) {
+        request.fields.addAll(fields);
+      }
+
+      if (files != null) {
+        for (var entry in files.entries) {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              entry.key,
+              entry.value.path,
+            ),
+          );
+        }
+      }
+
+      final streamedResponse = await request.send().timeout(
+        Duration(seconds: AppConstants.connectTimeout),
+      );
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      AppLogger.network('=======> Method: POST (Multipart) \n url : ${response.request?.url} \n  -----> status Code ${response.statusCode} \n ========> ${response.body} ');
+
+      return _processResponse(response);
+    } on TimeoutException {
+      throw ApiException.timeout();
+    } on SocketException {
+      throw ApiException(message: 'Could not connect to server');
+    }
+  }
+
+  Future<dynamic> patchMultipart(
+    String endpoint, {
+    Map<String, String>? fields,
+    Map<String, File>? files,
+    Map<String, String>? extraHeaders,
+  }) async {
+    if (!await _connectivity.hasConnection) {
+      throw ApiException.noInternet();
+    }
+    try {
+      final request = http.MultipartRequest('PATCH', _buildUri(endpoint));
+      
+      final headers = {..._headers, ...?extraHeaders};
+      headers.remove('Content-Type'); // Let http client set the correct content type with boundary
+      request.headers.addAll(headers);
+
+      if (fields != null) {
+        request.fields.addAll(fields);
+      }
+
+      if (files != null) {
+        for (var entry in files.entries) {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              entry.key,
+              entry.value.path,
+            ),
+          );
+        }
+      }
+
+      final streamedResponse = await request.send().timeout(
+        Duration(seconds: AppConstants.connectTimeout),
+      );
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      AppLogger.network('=======> Method: PATCH (Multipart) \n url : ${response.request?.url} \n  -----> status Code ${response.statusCode} \n ========> ${response.body} ');
+
+      return _processResponse(response);
+    } on TimeoutException {
+      throw ApiException.timeout();
+    } on SocketException {
+      throw ApiException(message: 'Could not connect to server');
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      AppLogger.error('Network error', error: e);
+      throw ApiException.unknown(e);
+    }
   }
 }

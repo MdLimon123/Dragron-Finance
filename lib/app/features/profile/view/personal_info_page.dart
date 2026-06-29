@@ -1,6 +1,8 @@
 import 'package:demo_project/app/core/theme/app_colors.dart';
 import 'package:demo_project/app/core/widget/app_shadow.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
+import 'package:demo_project/app/features/profile/controller/profile_controller.dart';
+import 'package:demo_project/app/features/profile/model/profile_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -9,16 +11,24 @@ class PersonalInfoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ProfileController controller = Get.find<ProfileController>();
+
     return Scaffold(
       backgroundColor: AppColors.appBackground,
       appBar: const CustomAppBar(),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
+        child: Obx(() {
+          final profile = controller.profileData.value;
+          if (profile == null) {
+            return const Center(child: Text("No profile data found"));
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
               const Text(
                 'Profile',
                 style: TextStyle(
@@ -39,7 +49,7 @@ class PersonalInfoPage extends StatelessWidget {
               const SizedBox(height: 24),
 
               // Profile Card (reused from ProfilePage)
-              _buildProfileCard(),
+              _buildProfileCard(profile),
               const SizedBox(height: 24),
 
               // Editable Personal Information Section
@@ -93,13 +103,14 @@ class PersonalInfoPage extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: const Color(0xFFA41F13).withOpacity(0.2)),
                             ),
-                            child: const TextField(
-                              decoration: InputDecoration(
-                                hintText: 'Sarah Johnson',
+                            child: TextField(
+                              controller: controller.fullNameController,
+                              decoration: const InputDecoration(
+                                hintText: 'Enter full name',
                                 contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                 border: InputBorder.none,
                               ),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w500,
                                 color: Color(0xFF101828),
@@ -112,7 +123,7 @@ class PersonalInfoPage extends StatelessWidget {
                     const SizedBox(height: 20),
 
                     // Email Address (Static in this view as per design)
-                    const Padding(
+                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,10 +140,10 @@ class PersonalInfoPage extends StatelessWidget {
                           ),
                           SizedBox(height: 8),
                           Padding(
-                            padding: EdgeInsets.only(left: 24),
+                            padding: const EdgeInsets.only(left: 24),
                             child: Text(
-                              'sarah@example.com',
-                              style: TextStyle(
+                              profile.emailAddress,
+                              style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF101828),
@@ -148,7 +159,11 @@ class PersonalInfoPage extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                       child: GestureDetector(
-                        onTap: () => Get.back(),
+                        onTap: () {
+                          if (!controller.isUpdating.value) {
+                            controller.updateProfileData();
+                          }
+                        },
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -156,15 +171,23 @@ class PersonalInfoPage extends StatelessWidget {
                             color: const Color(0xFFA41F13),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Text(
-                            'Save Changes',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                          child: Obx(() => controller.isUpdating.value
+                              ? const Center(
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  ),
+                                )
+                              : const Text(
+                                  'Save Changes',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                )),
                         ),
                       ),
                     ),
@@ -178,8 +201,8 @@ class PersonalInfoPage extends StatelessWidget {
                 title: 'Contact Details',
                 icon: Icons.phone_outlined,
                 children: [
-                  _buildInfoField('Phone Number', '+44 (555) 010-1234', icon: Icons.phone_outlined),
-                  _buildInfoField('Address', '123 Main St, San Francisco, CA 94105', icon: Icons.location_on_outlined, isLast: true),
+                  _buildInfoField('Phone Number', controller.phoneController, icon: Icons.phone_outlined),
+                  _buildInfoField('Address', controller.addressController, icon: Icons.location_on_outlined, isLast: true),
                 ],
               ),
               const SizedBox(height: 20),
@@ -189,7 +212,7 @@ class PersonalInfoPage extends StatelessWidget {
                 title: 'Account & Security',
                 icon: Icons.shield_outlined,
                 children: [
-                  _buildAccountRow('Account Status', 'Active', isBadge: true),
+                  _buildAccountRow('Account Status', profile.isActive ? 'Active' : 'Inactive', isBadge: true),
                   _buildAccountRow('Member Since', 'January 2024'),
                   _buildAccountRow('Two-Factor Auth', 'Enabled', isBadge: true, isLast: true),
                 ],
@@ -197,9 +220,10 @@ class PersonalInfoPage extends StatelessWidget {
               const SizedBox(height: 32),
             ],
           ),
-        ),
-      ),
-    );
+        );
+      }),
+    ),
+  );
   }
 
   Widget _buildSectionCard({
@@ -245,7 +269,7 @@ class PersonalInfoPage extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoField(String label, String value, {required IconData icon, bool isLast = false}) {
+  Widget _buildInfoField(String label, TextEditingController textController, {required IconData icon, bool isLast = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -268,13 +292,22 @@ class PersonalInfoPage extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.only(left: 24),
-                child: Text(
-                  value,
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFBEAE8),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFA41F13).withOpacity(0.2)),
+                ),
+                child: TextField(
+                  controller: textController,
+                  decoration: InputDecoration(
+                    hintText: 'Enter $label',
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: InputBorder.none,
+                  ),
                   style: const TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     color: Color(0xFF101828),
                   ),
                 ),
@@ -334,7 +367,7 @@ class PersonalInfoPage extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(ProfileModel profile) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -349,16 +382,63 @@ class PersonalInfoPage extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              image: const DecorationImage(
-                image: AssetImage('assets/image/food.jpg'),
-                fit: BoxFit.cover,
-              ),
-              border: Border.all(color: Colors.white.withOpacity(0.2), width: 4),
+          GestureDetector(
+            onTap: () => Get.find<ProfileController>().pickProfileImage(),
+            child: Stack(
+              children: [
+                Obx(() {
+                  final controller = Get.find<ProfileController>();
+                  return Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withOpacity(0.2), width: 4),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: controller.selectedProfileImage.value != null
+                          ? Image.file(
+                              controller.selectedProfileImage.value!,
+                              fit: BoxFit.cover,
+                            )
+                          : (profile.profileImageUrl != null && profile.profileImageUrl!.isNotEmpty)
+                              ? Image.network(
+                                  profile.profileImageUrl!,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const Center(
+                                      child: SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) => Image.asset('assets/image/food.jpg', fit: BoxFit.cover),
+                                )
+                              : Image.asset('assets/image/food.jpg', fit: BoxFit.cover),
+                    ),
+                  );
+                }),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFA41F13),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Icon(Icons.edit, size: 12, color: Colors.white),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 20),
@@ -366,20 +446,20 @@ class PersonalInfoPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Sarah Johnson',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+                Text(
+                  profile.fullName,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
                 ),
-                const Text(
-                  'sarah@example.com',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.white60),
+                Text(
+                  profile.emailAddress,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Colors.white60),
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _buildStatusBadge('Active Account', Icons.circle, const Color(0xFF22C55E)),
-                    const SizedBox(width: 8),
-                    _buildStatusBadge('Customer', Icons.shield_outlined, Colors.white),
+                    _buildStatusBadge(profile.isActive ? 'Active Account' : 'Inactive Account', Icons.circle, profile.isActive ? const Color(0xFF22C55E) : Colors.red),
+                    const SizedBox(width: 3),
+                    _buildStatusBadge(profile.roleLabel, Icons.shield_outlined, Colors.white),
                   ],
                 ),
               ],
