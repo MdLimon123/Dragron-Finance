@@ -1,11 +1,15 @@
 import 'package:demo_project/app/core/theme/app_colors.dart';
 import 'package:demo_project/app/core/widget/app_shadow.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
+import 'package:demo_project/app/features/notification/controller/notification_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:get/get.dart';
 
 class NotificationPage extends StatelessWidget {
-  const NotificationPage({super.key});
+  NotificationPage({super.key});
+
+  final controller = Get.put(NotificationController());
 
   @override
   Widget build(BuildContext context) {
@@ -13,131 +17,156 @@ class NotificationPage extends StatelessWidget {
       backgroundColor: AppColors.appBackground,
       appBar: const CustomAppBar(),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Page Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Notifications',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF101828),
+        child: RefreshIndicator(
+          onRefresh: controller.refreshNotifications,
+          color: const Color(0xFFA41F13),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            controller: controller.scrollController,
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Page Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Notifications',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF101828),
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        '3 unread',
+                        const SizedBox(height: 4),
+                        Obx(() => Text(
+                          '${controller.meta.value?.unreadCount ?? 0} unread',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFA41F13),
+                          ),
+                        )),
+                      ],
+                    ),
+                    TextButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.check, size: 16, color: Color(0xFFA41F13)),
+                      label: const Text(
+                        'Mark all read',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFFA41F13),
                         ),
                       ),
-                    ],
-                  ),
-                  TextButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.check, size: 16, color: Color(0xFFA41F13)),
-                    label: const Text(
-                      'Mark all read',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFFA41F13),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                    ),
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Section Label
-              const Text(
-                'EARLIER',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF99A1AF),
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Notification List Card
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: AppShadow.soft,
-                ),
-                child: Column(
-                  children: [
-                    _buildNotificationItem(
-                      icon: 'assets/icon/tree.svg', 
-                      iconBg: const Color(0xFFFBEAE8),
-                      iconColor: const Color(0xFFA41F13),
-                      title: 'Application Approved!',
-                      desc: 'Your home loan application LS-2024-001 has been approved for \$350,000 at 6.75% APR.',
-                      date: 'Feb 15, 2024',
-                      isUnread: false,
-                    ),
-                    _buildNotificationItem(
-                      icon: 'assets/icon/docs.svg',
-                      iconBg: const Color(0xFFFFF7ED),
-                      iconColor: const Color(0xFFD97706),
-                      title: 'Documents Required',
-                      desc: 'Please upload bank statements and tax returns for your home loan application.',
-                      date: 'Jan 25, 2024',
-                      isUnread: false,
-                    ),
-                    _buildNotificationItem(
-                      icon: 'assets/icon/check_mark.svg',
-                      iconBg: const Color(0xFFECFDF5),
-                      iconColor: const Color(0xFF065F46),
-                      title: 'Application Received',
-                      desc: 'Your personal loan application LS-2024-002 is now under review.',
-                      date: 'Mar 12, 2024',
-                      isUnread: true,
-                    ),
-                    _buildNotificationItem(
-                      icon: Icons.chat_bubble_outline,
-                      iconBg: const Color(0xFFF3F4F6),
-                      iconColor: const Color(0xFF4B5563),
-                      title: 'New Message from Admin',
-                      desc: 'Alex Rivera sent you a message regarding your home loan application.',
-                      date: 'Mar 14, 2024',
-                      isUnread: true,
-                    ),
-                    _buildNotificationItem(
-                      icon: Icons.access_time,
-                      iconBg: const Color(0xFFFBEAE8),
-                      iconColor: const Color(0xFFA41F13),
-                      title: 'Payment Reminder',
-                      desc: 'Your next mortgage payment of \$2,270 is due on April 1st.',
-                      date: 'Mar 20, 2024',
-                      isUnread: true,
-                      isLast: true,
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 32),
-            ],
+                const SizedBox(height: 24),
+
+                // Section Label
+                const Text(
+                  'EARLIER',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF99A1AF),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Notification List Card
+                Obx(() {
+                  if (controller.isLoading.value) {
+                    return const Padding(
+                      padding: EdgeInsets.only(top: 40),
+                      child: Center(
+                        child: CircularProgressIndicator(color: Color(0xFFA41F13)),
+                      ),
+                    );
+                  }
+
+                  if (controller.notifications.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.only(top: 40),
+                      child: Center(
+                        child: Text(
+                          "No notifications found",
+                          style: TextStyle(color: Color(0xFF6A7282), fontSize: 16),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: AppShadow.soft,
+                    ),
+                    child: Column(
+                      children: [
+                        ...controller.notifications.asMap().entries.map((entry) {
+                          int index = entry.key;
+                          var notification = entry.value;
+                          bool isLast = index == controller.notifications.length - 1;
+
+                          // Example icons based on type, you can adjust these logic
+                          dynamic icon = Icons.notifications_none;
+                          Color iconBg = const Color(0xFFF3F4F6);
+                          Color iconColor = const Color(0xFF4B5563);
+                          
+                          if (notification.type == 'kyc_submitted') {
+                            icon = 'assets/icon/docs.svg';
+                            iconBg = const Color(0xFFFFF7ED);
+                            iconColor = const Color(0xFFD97706);
+                          } else if (notification.type.contains('approved')) {
+                            icon = 'assets/icon/check_mark.svg';
+                            iconBg = const Color(0xFFECFDF5);
+                            iconColor = const Color(0xFF065F46);
+                          } else {
+                            // default styling
+                            iconBg = const Color(0xFFFBEAE8);
+                            iconColor = const Color(0xFFA41F13);
+                          }
+
+                          return _buildNotificationItem(
+                            icon: icon,
+                            iconBg: iconBg,
+                            iconColor: iconColor,
+                            title: notification.title,
+                            desc: notification.message,
+                            date: notification.timeAgo.isNotEmpty ? notification.timeAgo : notification.createdAt, // Or format createdAt
+                            isUnread: !notification.isRead,
+                            isLast: isLast,
+                          );
+                        }).toList(),
+                        if (controller.isFetchingMore.value)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Center(
+                              child: CircularProgressIndicator(color: Color(0xFFA41F13)),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
         ),
       ),
@@ -190,14 +219,19 @@ class NotificationPage extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF101828),
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF101828),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
                           date,
                           style: const TextStyle(

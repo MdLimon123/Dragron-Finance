@@ -7,38 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 
-class BookCallPage extends StatefulWidget {
-  const BookCallPage({super.key});
+import 'package:demo_project/app/features/book-a-call/controller/bookcall_controller.dart';
 
-  @override
-  State<BookCallPage> createState() => _BookCallPageState();
-}
+class BookCallPage extends StatelessWidget {
+  BookCallPage({super.key});
 
-class _BookCallPageState extends State<BookCallPage> {
-  int _selectedCallType = 0;
-
-  DateTime _focusedMonth = DateTime(2026, 4);
-  DateTime? _selectedDate = DateTime(2026, 4, 29);
-  String? _selectedTime = "11:30 AM";
-
-  // Unavailable (greyed out) times
-  final List<String> _unavailableTimes = ["09:30 AM", "10:30 AM", "02:30 PM"];
-
-  // All time slots
-  final List<String> _timeSlots = [
-    "09:00 AM",
-    "09:30 AM",
-    "10:00 AM",
-    "10:30 AM",
-    "11:00 AM",
-    "11:30 AM",
-    "02:00 PM",
-    "02:30 PM",
-    "03:00 PM",
-    "03:30 PM",
-    "04:00 PM",
-    "04:30 PM",
-  ];
+  final BookCallController controller = Get.put(BookCallController());
 
   // ─── Calendar helpers ───────────────────────────────
   List<DateTime?> _buildCalendarDays(DateTime month) {
@@ -104,13 +78,23 @@ class _BookCallPageState extends State<BookCallPage> {
 
       appBar: CustomAppBar(),
 
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 30),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(context),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator(color: Color(0xFFA41F13)));
+        }
+
+        final data = controller.bookCallData.value;
+        if (data == null) {
+          return const Center(child: Text("No data available"));
+        }
+
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 30),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context),
 
             SizedBox(height: 20),
             Expanded(
@@ -180,7 +164,7 @@ class _BookCallPageState extends State<BookCallPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Thu, April 30, 2026",
+                                  controller.bookCallData.value?.selected?.dateLabel ?? "Thu, April 30, 2026",
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
@@ -189,7 +173,7 @@ class _BookCallPageState extends State<BookCallPage> {
                                 ),
                                 SizedBox(height: 2),
                                 Text(
-                                  "11:30 AM · Video Call",
+                                  "${controller.selectedTime.value ?? ''} · ${controller.bookCallData.value?.selected?.callTypeLabel ?? 'Video Call'}",
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w400,
@@ -220,7 +204,10 @@ class _BookCallPageState extends State<BookCallPage> {
 
                     SizedBox(height: 14),
 
+                    SizedBox(height: 14),
+
                     // ── Reminder note ──
+                    if (data.reminder?.enabled == true)
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -232,7 +219,7 @@ class _BookCallPageState extends State<BookCallPage> {
                         SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            "A reminder will be sent to your registered email 30 minutes before the appointment.",
+                            data.reminder?.message ?? "A reminder will be sent to your registered email.",
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w400,
@@ -254,7 +241,8 @@ class _BookCallPageState extends State<BookCallPage> {
             ),
           ],
         ),
-      ),
+      );
+      }),
     );
   }
 
@@ -283,15 +271,31 @@ class _BookCallPageState extends State<BookCallPage> {
           child: InkWell(
             borderRadius: BorderRadius.circular(14),
             onTap: () {
-                 Get.to(() => AppointmentBookOverviewPage());
+                 if (!controller.isSubmitting.value) {
+                   controller.submitBooking(() {
+                     Get.to(() => AppointmentBookOverviewPage());
+                   });
+                 }
             },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SvgPicture.asset('assets/icon/star.svg'),
-                SizedBox(width: 6),
+                if (controller.isSubmitting.value) ...[
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ] else ...[
+                  SvgPicture.asset('assets/icon/star.svg'),
+                  SizedBox(width: 6),
+                ],
                 Text(
-                  'Confirm Appointment',
+                  controller.isSubmitting.value ? 'Booking...' : 'Confirm Appointment',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -347,6 +351,7 @@ class _BookCallPageState extends State<BookCallPage> {
 
           // Text field
           TextField(
+            controller: controller.noteController,
             maxLines: 4,
             style: TextStyle(fontSize: 13, color: Color(0xFF292F36)),
 
@@ -399,7 +404,7 @@ class _BookCallPageState extends State<BookCallPage> {
           ),
           SizedBox(height: 12),
           Text(
-            _selectedDate != null ? _dayLabel(_selectedDate) : "",
+            controller.selectedDate.value != null ? _dayLabel(controller.selectedDate.value) : "",
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w400,
@@ -411,7 +416,7 @@ class _BookCallPageState extends State<BookCallPage> {
           GridView.builder(
             shrinkWrap: true,
             physics: NeverScrollableScrollPhysics(),
-            itemCount: _timeSlots.length,
+            itemCount: controller.timeSlots.length,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               crossAxisSpacing: 8,
@@ -419,14 +424,14 @@ class _BookCallPageState extends State<BookCallPage> {
               childAspectRatio: 2.6,
             ),
             itemBuilder: (context, index) {
-              final time = _timeSlots[index];
-              final isUnavailable = _unavailableTimes.contains(time);
-              final isSelected = _selectedTime == time;
+              final time = controller.timeSlots[index];
+              final isUnavailable = controller.unavailableTimes.contains(time);
+              final isSelected = controller.selectedTime.value == time;
 
               return GestureDetector(
                 onTap: isUnavailable
                     ? null
-                    : () => setState(() => _selectedTime = time),
+                    : () => controller.selectedTime.value = time,
                 child: Container(
                   decoration: BoxDecoration(
                     color: isSelected ? Color(0xFFA41F13) : Color(0xFFFAF5F1),
@@ -492,12 +497,10 @@ class _BookCallPageState extends State<BookCallPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onTap: () => setState(() {
-                  _focusedMonth = DateTime(
-                    _focusedMonth.year,
-                    _focusedMonth.month - 1,
-                  );
-                }),
+                onTap: () {
+                  final current = controller.focusedMonth.value;
+                  controller.focusedMonth.value = DateTime(current.year, current.month - 1);
+                },
                 child: Container(
                   padding: EdgeInsets.all(6),
                   decoration: BoxDecoration(
@@ -513,7 +516,7 @@ class _BookCallPageState extends State<BookCallPage> {
                 ),
               ),
               Text(
-                _monthLabel(_focusedMonth),
+                _monthLabel(controller.focusedMonth.value),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -521,12 +524,10 @@ class _BookCallPageState extends State<BookCallPage> {
                 ),
               ),
               GestureDetector(
-                onTap: () => setState(() {
-                  _focusedMonth = DateTime(
-                    _focusedMonth.year,
-                    _focusedMonth.month + 1,
-                  );
-                }),
+                onTap: () {
+                  final current = controller.focusedMonth.value;
+                  controller.focusedMonth.value = DateTime(current.year, current.month + 1);
+                },
                 child: Container(
                   padding: EdgeInsets.all(6),
                   decoration: BoxDecoration(
@@ -571,7 +572,9 @@ class _BookCallPageState extends State<BookCallPage> {
           // Calendar grid
           Builder(
             builder: (context) {
-              final days = _buildCalendarDays(_focusedMonth);
+              final focusedMonth = controller.focusedMonth.value;
+              final selectedDate = controller.selectedDate.value;
+              final days = _buildCalendarDays(focusedMonth);
               final rows = (days.length / 7).ceil();
               return Column(
                 children: List.generate(rows, (rowIndex) {
@@ -581,20 +584,23 @@ class _BookCallPageState extends State<BookCallPage> {
                       final day = i < days.length ? days[i] : null;
                       final isSelected =
                           day != null &&
-                          _selectedDate != null &&
-                          day.year == _selectedDate!.year &&
-                          day.month == _selectedDate!.month &&
-                          day.day == _selectedDate!.day;
+                          selectedDate != null &&
+                          day.year == selectedDate.year &&
+                          day.month == selectedDate.month &&
+                          day.day == selectedDate.day;
+                      final now = DateTime.now();
                       final isToday =
                           day != null &&
-                          day.day == 20 &&
-                          day.month == _focusedMonth.month;
-                      final isPast = day != null && day.day < 20;
+                          day.day == now.day &&
+                          day.month == now.month &&
+                          day.year == now.year;
+                      final isPast = day != null && 
+                          DateTime(day.year, day.month, day.day).isBefore(DateTime(now.year, now.month, now.day));
 
                       return Expanded(
                         child: GestureDetector(
                           onTap: day != null && !isPast
-                              ? () => setState(() => _selectedDate = day)
+                              ? () => controller.onDateSelected(day)
                               : null,
                           child: Container(
                             margin: EdgeInsets.all(2),
@@ -673,19 +679,19 @@ class _BookCallPageState extends State<BookCallPage> {
               // Phone Call option
               Expanded(
                 child: GestureDetector(
-                  onTap: () => setState(() => _selectedCallType = 0),
+                  onTap: () => controller.onCallTypeSelected(0),
                   child: Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 16, // Same vertical padding
                     ),
                     decoration: BoxDecoration(
-                      color: _selectedCallType == 0
+                      color: controller.selectedCallType.value == 0
                           ? Color(0xFFFAF5F1)
                           : Color(0xFFF9F9F9),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: _selectedCallType == 0
+                        color: controller.selectedCallType.value == 0
                             ? Color(0xFFA41F13)
                             : Color(0xFFE0DBD8),
                         width: 1.5,
@@ -743,7 +749,7 @@ class _BookCallPageState extends State<BookCallPage> {
               Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    setState(() => _selectedCallType = 1);
+                    controller.onCallTypeSelected(1);
                     Get.toNamed(AppRoutes.liveChat);
                   },
                   child: Container(
@@ -752,14 +758,14 @@ class _BookCallPageState extends State<BookCallPage> {
                       vertical: 16, // Same vertical padding as Phone Call
                     ),
                     decoration: BoxDecoration(
-                      color: _selectedCallType == 1
+                      color: controller.selectedCallType.value == 1
                           ? Color(0xFFFAF5F1)
                           : Color(0xFFF9F9F9),
                       borderRadius: BorderRadius.circular(
                         16,
                       ), // Same borderRadius
                       border: Border.all(
-                        color: _selectedCallType == 1
+                        color: controller.selectedCallType.value == 1
                             ? Color(0xFFA41F13)
                             : Color(0xFFE0DBD8),
                         width: 1.5,
@@ -777,7 +783,7 @@ class _BookCallPageState extends State<BookCallPage> {
                           child: Icon(
                             Icons.chat_bubble_outline_rounded,
                             size: 20,
-                            color: _selectedCallType == 1
+                            color: controller.selectedCallType.value == 1
                                 ? Color(0xFFA41F13)
                                 : Color(0xFF6B7280),
                           ),
@@ -874,7 +880,7 @@ class _BookCallPageState extends State<BookCallPage> {
                 ),
                 child: Center(
                   child: Text(
-                    "JM",
+                    controller.bookCallData.value?.caseManager?.initials ?? "JM",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -900,7 +906,7 @@ class _BookCallPageState extends State<BookCallPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Jordan Mitchell",
+                              controller.bookCallData.value?.caseManager?.name ?? "Jordan Mitchell",
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
@@ -909,7 +915,7 @@ class _BookCallPageState extends State<BookCallPage> {
                             ),
 
                             Text(
-                              "Senior Loan Advisor",
+                              controller.bookCallData.value?.caseManager?.title ?? "Senior Loan Advisor",
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w400,
@@ -971,7 +977,7 @@ class _BookCallPageState extends State<BookCallPage> {
                                 ),
                               ),
                               child: Text(
-                                "Homeowner Loans",
+                                controller.bookCallData.value?.caseManager?.speciality ?? "Homeowner Loans",
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500,

@@ -24,6 +24,13 @@ class ApiEndpoints {
  static const String submitKyc = "/kyc/submit/";
  static const String updateProfile = "/auth/me/";
 
+ static const String getMyLoanEndPoint = "/customer/my-loans/";
+ static const String notification = '/notifications/';
+
+ static const String referralDashboard = "/referrals/dashboard/";
+ static const String getBookApiEndPoint = "/support/book-call/";
+ static const String submitBookingEndPoint = "/support/book-call/";
+
   // Products
   static const String products = '/products/';
   static String userById(int id) => '/users/$id';

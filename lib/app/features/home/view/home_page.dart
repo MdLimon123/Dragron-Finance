@@ -7,6 +7,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:demo_project/app/features/profile/controller/profile_controller.dart';
+import 'package:demo_project/app/features/notification/view/notification_page.dart';
 
 class HomePage extends StatelessWidget {
   HomePage({super.key});
@@ -141,7 +142,7 @@ class HomePage extends StatelessWidget {
                     SizedBox(width: 8),
                     _quickActionItem(
                       onTap: () {
-                        // Handle Alerts action
+                        Get.to(() => NotificationPage());
                       },
                       icon: 'assets/icon/notification.svg',
                       title: 'Alerts',
@@ -496,7 +497,8 @@ class HomePage extends StatelessWidget {
 
   Widget _headingContainer() {
     final profile = profileController.profileData.value;
-    final firstName = profile?.fullName.split(' ').first ?? 'User';
+    final firstName = profile?.fullName ?? 'User';
+
 
     var hour = DateTime.now().hour;
     String greeting;
@@ -538,7 +540,7 @@ class HomePage extends StatelessWidget {
 
           // Name with emoji
           Text(
-            '$firstName 👋',
+            '$firstName ',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 24,

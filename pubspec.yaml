@@ -22,6 +22,8 @@ dependencies:
   flutter_svg: ^2.2.4
   intl: ^0.20.3
   image_picker: ^1.2.2
+  url_launcher: ^6.3.2
+  share_plus: ^13.2.0
 
 
 dev_dependencies:

@@ -2,19 +2,15 @@ import 'package:demo_project/app/core/theme/app_colors.dart';
 import 'package:demo_project/app/core/widget/app_shadow.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
 import 'package:demo_project/app/features/myLoan/view/myloan_overview_page.dart';
+import 'package:demo_project/app/core/config/environment.dart';
+import 'package:demo_project/app/features/myLoan/controller/my_loan_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class MyLoanPage extends StatefulWidget {
-  const MyLoanPage({super.key});
+class MyLoanPage extends StatelessWidget {
+  MyLoanPage({super.key});
 
-  @override
-  State<MyLoanPage> createState() => _MyLoanPageState();
-}
-
-class _MyLoanPageState extends State<MyLoanPage> {
-  String selectedTab = 'All';
-  final List<String> tabs = ['All', 'Active', 'In Review', 'Completed'];
+  final controller = Get.put(MyLoanController());
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +19,7 @@ class _MyLoanPageState extends State<MyLoanPage> {
       appBar: const CustomAppBar(),
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: controller.scrollController,
           padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,10 +28,10 @@ class _MyLoanPageState extends State<MyLoanPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'My Loans',
                         style: TextStyle(
                           fontSize: 20,
@@ -42,14 +39,14 @@ class _MyLoanPageState extends State<MyLoanPage> {
                           color: Color(0xFF101828),
                         ),
                       ),
-                      Text(
-                        '2 applications total',
-                        style: TextStyle(
+                      Obx(() => Text(
+                        '${controller.summary.value?.totalApplications ?? 0} applications total',
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
                           color: Color(0xFF99A1AF),
                         ),
-                      ),
+                      )),
                     ],
                   ),
                   GestureDetector(
@@ -96,14 +93,14 @@ class _MyLoanPageState extends State<MyLoanPage> {
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: Row(
+                child: Obx(() => Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildSummaryItem('\$350,000', 'Loan Amount'),
-                    _buildSummaryItem('1', 'Active Loans'),
-                    _buildSummaryItem('1', 'In Review'),
+                    _buildSummaryItem('-', 'Loan Amount'),
+                    _buildSummaryItem('${controller.summary.value?.activeLoans ?? 0}', 'Active Loans'),
+                    _buildSummaryItem('${controller.summary.value?.inReview ?? 0}', 'In Review'),
                   ],
-                ),
+                )),
               ),
               const SizedBox(height: 24),
 
@@ -132,35 +129,81 @@ class _MyLoanPageState extends State<MyLoanPage> {
                 height: 48,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: tabs.map((tab) => _buildTabItem(tab)).toList(),
-                  ),
+                  child: Obx(() => Row(
+                    children: controller.tabs.map((tab) => _buildTabItem(tab)).toList(),
+                  )),
                 ),
               ),
               const SizedBox(height: 24),
 
               // Loan Cards
-              _buildLoanCard(
-                title: 'Home Loan',
-                id: 'LS-2024-001',
-                amount: '\$350,000',
-                term: '360 months',
-                status: 'Approved',
-                statusColor: const Color(0xFFDCFCE7),
-                statusTextColor: const Color(0xFF008236),
-                icon: Icons.home_outlined,
-              ),
-              const SizedBox(height: 16),
-              _buildLoanCard(
-                title: 'Personal Loan',
-                id: 'LS-2024-002',
-                amount: '\$15,000',
-                term: '36 months',
-                status: 'Under Review',
-                statusColor: const Color(0xFFFEF3C6),
-                statusTextColor: const Color(0xFFBB4D00),
-                icon: Icons.person_outline,
-              ),
+              Obx(() {
+                if (controller.isLoading.value) {
+                  return const Padding(
+                    padding: EdgeInsets.only(top: 40),
+                    child: Center(child: CircularProgressIndicator(color: Color(0xFFA41F13))),
+                  );
+                }
+                if (controller.loans.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.only(top: 40),
+                    child: Center(
+                      child: Text(
+                        "No loans found",
+                        style: TextStyle(color: Color(0xFF6A7282), fontSize: 16),
+                      ),
+                    ),
+                  );
+                }
+                return Column(
+                  children: [
+                    ...controller.loans.map((loan) {
+                      Color statusColor;
+                      Color statusTextColor;
+                      String statusText;
+
+                      if (loan.status == 'active') {
+                        statusText = 'Active';
+                        statusColor = const Color(0xFFDCFCE7);
+                        statusTextColor = const Color(0xFF008236);
+                      } else if (loan.status == 'under_review') {
+                        statusText = 'Under Review';
+                        statusColor = const Color(0xFFFEF3C6);
+                        statusTextColor = const Color(0xFFBB4D00);
+                      } else if (loan.status == 'completed') {
+                        statusText = 'Completed';
+                        statusColor = const Color(0xFFE0F2FE);
+                        statusTextColor = const Color(0xFF0284C7);
+                      } else {
+                        statusText = loan.status;
+                        statusColor = Colors.grey.shade200;
+                        statusTextColor = Colors.grey.shade800;
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildLoanCard(
+                          title: loan.loanType,
+                          id: loan.applicationNumber,
+                          amount: '\$${loan.loanAmount}',
+                          term: loan.loanTerm,
+                          status: statusText,
+                          statusColor: statusColor,
+                          statusTextColor: statusTextColor,
+                          iconImageUrl: loan.iconImageUrl,
+                        ),
+                      );
+                    }).toList(),
+                    if (controller.isFetchingMore.value)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Center(
+                          child: CircularProgressIndicator(color: Color(0xFFA41F13)),
+                        ),
+                      ),
+                  ],
+                );
+              }),
             ],
           ),
         ),
@@ -193,9 +236,9 @@ class _MyLoanPageState extends State<MyLoanPage> {
   }
 
   Widget _buildTabItem(String title) {
-    bool isSelected = selectedTab == title;
+    bool isSelected = controller.selectedTab.value == title;
     return GestureDetector(
-      onTap: () => setState(() => selectedTab = title),
+      onTap: () => controller.changeTab(title),
       child: Container(
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -225,7 +268,8 @@ class _MyLoanPageState extends State<MyLoanPage> {
     required String status,
     required Color statusColor,
     required Color statusTextColor,
-    required IconData icon,
+    String? iconImageUrl,
+    IconData fallbackIcon = Icons.home_outlined,
   }) {
     return GestureDetector(
       onTap: () => Get.to(() => const MyLoanOverviewPage()),
@@ -246,7 +290,15 @@ class _MyLoanPageState extends State<MyLoanPage> {
                 color: const Color(0xFFFBEAE8),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: const Color(0xFFA41F13), size: 24),
+              child: (iconImageUrl != null && iconImageUrl.isNotEmpty)
+                  ? Image.network(
+                      EnvironmentConfig.baseHost + iconImageUrl,
+                      width: 24,
+                      height: 24,
+                      color: const Color(0xFFA41F13),
+                      errorBuilder: (context, error, stackTrace) => Icon(fallbackIcon, color: const Color(0xFFA41F13), size: 24),
+                    )
+                  : Icon(fallbackIcon, color: const Color(0xFFA41F13), size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(

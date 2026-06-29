@@ -4,86 +4,119 @@ import 'package:demo_project/app/core/theme/app_colors.dart';
 import 'package:demo_project/app/core/widget/app_shadow.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:demo_project/app/features/refer/controller/refer_controller.dart';
+import 'package:demo_project/app/features/refer/model/referral_model.dart';
+import 'package:flutter/services.dart'; // For Clipboard
+import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ReferFriendPage extends StatelessWidget {
-  const ReferFriendPage({super.key});
+  ReferFriendPage({super.key});
+
+  final controller = Get.put(ReferController());
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.appBackground,
       appBar: const CustomAppBar(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top Header: Back Button & Title
-            Row(
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator(color: Color(0xFFA41F13)));
+        }
+
+        final data = controller.referralData.value;
+        if (data == null) {
+          return const Center(
+            child: Text("No referral data found", style: TextStyle(color: Color(0xFF6A7282), fontSize: 16)),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: controller.refreshDashboard,
+          color: const Color(0xFFA41F13),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                InkWell(
-                  onTap: () => Get.back(),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFE0DBD8)),
+                // Top Header: Back Button & Title
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: () => Get.back(),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFE0DBD8)),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new,
+                          size: 16,
+                          color: Color(0xFF292F36),
+                        ),
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new,
-                      size: 16,
-                      color: Color(0xFF292F36),
+                    const SizedBox(width: 16),
+                    Text(
+                      data.screenTitle.isNotEmpty ? data.screenTitle : 'Refer a Friend',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF292F36),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                const Text(
-                  'Refer a Friend',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF292F36),
-                  ),
-                ),
+                const SizedBox(height: 20),
+
+                // Main Dark Referral Banner Card
+                if (data.hero != null) ...[
+                  _buildReferralBanner(data.hero!),
+                  const SizedBox(height: 16),
+                ],
+
+                // "YOUR REFERRAL CODE" Section
+                if (data.referral != null) ...[
+                  _buildReferralCodeSection(data.referral!),
+                  const SizedBox(height: 16),
+                ],
+
+                // "SHARE VIA" Section
+                if (data.shareVia != null) ...[
+                  _buildShareViaSection(data.shareVia!),
+                  const SizedBox(height: 16),
+                ],
+
+                // "Referral Progress" Section
+                if (data.progress != null) ...[
+                  _buildReferralProgressSection(data.progress!, data.referrals),
+                  const SizedBox(height: 24),
+                ],
               ],
             ),
-            const SizedBox(height: 20),
-
-            // Main Dark Referral Banner Card
-            _buildReferralBanner(),
-            const SizedBox(height: 16),
-
-            // "YOUR REFERRAL CODE" Section
-            _buildReferralCodeSection(),
-            const SizedBox(height: 16),
-
-            // "SHARE VIA" Section
-            _buildShareViaSection(),
-            const SizedBox(height: 16),
-
-            // "Referral Progress" Section
-            _buildReferralProgressSection(),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
+          ),
+        );
+      }),
     );
   }
 
   // 1. Dark Referral Banner Card
-  Widget _buildReferralBanner() {
+  Widget _buildReferralBanner(ReferralHero hero) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: const LinearGradient(
           colors: [
             Color(0xFF1C2228),
-           Color(0xFF292F36),
-           Color(0xFFA41F13)
-           ],
+            Color(0xFF292F36),
+            Color(0xFFA41F13)
+          ],
           begin: Alignment.topLeft,
           end: Alignment.centerRight,
         ),
@@ -111,12 +144,12 @@ class ReferFriendPage extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child:SvgPicture.asset('assets/icon/giftCard.svg') 
+                    child: SvgPicture.asset('assets/icon/giftCard.svg'),
                   ),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Referral Program',
-                    style: TextStyle(
+                  Text(
+                    hero.programTitle,
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: Colors.white70,
@@ -133,25 +166,25 @@ class ReferFriendPage extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.15),
                   ),
                 ),
-                child:SvgPicture.asset('assets/icon/trophy.svg')  
+                child: SvgPicture.asset('assets/icon/trophy.svg'),
               ),
             ],
           ),
           const SizedBox(height: 12),
 
-          // Middle Text: "12-Invited" Stat
+          // Middle Text: Stat
           RichText(
-            text: const TextSpan(
+            text: TextSpan(
               children: [
                 TextSpan(
-                  text: '12-',
-                  style: TextStyle(
+                  text: '${hero.totalInvited}-',
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFFFAD89A),
                   ),
                 ),
-                TextSpan(
+                const TextSpan(
                   text: 'Invited',
                   style: TextStyle(
                     fontSize: 28,
@@ -164,9 +197,9 @@ class ReferFriendPage extends StatelessWidget {
           ),
           const SizedBox(height: 6),
 
-          const Text(
-            'Please recommend us to your\nfriends, family & colleagues.',
-            style: TextStyle(
+          Text(
+            hero.subtitle,
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w400,
               color: Colors.white60,
@@ -183,7 +216,7 @@ class ReferFriendPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: Colors.white.withValues(alpha: 0.10),
-              ),  
+              ),
             ),
             child: Row(
               children: [
@@ -195,16 +228,16 @@ class ReferFriendPage extends StatelessWidget {
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
-                      '12',
-                      style: TextStyle(
+                      '${hero.totalInvited}',
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
                     ),
-                    Text(
+                    const Text(
                       'Invited',
                       style: TextStyle(
                         fontSize: 10,
@@ -223,7 +256,7 @@ class ReferFriendPage extends StatelessWidget {
   }
 
   // 2. "YOUR REFERRAL CODE" Section
-  Widget _buildReferralCodeSection() {
+  Widget _buildReferralCodeSection(ReferralDetails referral) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -259,8 +292,7 @@ class ReferFriendPage extends StatelessWidget {
                     color: const Color(0xFFFBEAE8),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: const Color(0xFFA41F13)
-                      .withValues(alpha: 0.30  ),
+                      color: const Color(0xFFA41F13).withValues(alpha: 0.30),
                       width: 1.5,
                     ),
                   ),
@@ -270,9 +302,9 @@ class ReferFriendPage extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'JHBJB200',
-                            style: TextStyle(
+                          Text(
+                            referral.code,
+                            style: const TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFFA41F13),
@@ -285,15 +317,12 @@ class ReferFriendPage extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: const Color(0xFFA41F13)
-                              .withValues(
-                                alpha: 0.7,
-                              ),
+                              color: const Color(0xFFA41F13).withValues(alpha: 0.7),
                             ),
                           ),
                         ],
                       ),
-                     SvgPicture.asset('assets/icon/gemime_fill.svg')  
+                      SvgPicture.asset('assets/icon/gemime_fill.svg')
                     ],
                   ),
                 ),
@@ -302,7 +331,10 @@ class ReferFriendPage extends StatelessWidget {
 
               // Square Copy Button
               InkWell(
-                onTap: () {},
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: referral.code));
+                  Get.snackbar('Copied', 'Referral code copied to clipboard', snackPosition: SnackPosition.BOTTOM);
+                },
                 borderRadius: BorderRadius.circular(14),
                 child: Container(
                   width: 52,
@@ -333,10 +365,10 @@ class ReferFriendPage extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'https://loansphere.app/ref...',
-                    style: TextStyle(
+                    referral.link,
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
                       color: Color(0xFF9A9490),
@@ -349,7 +381,10 @@ class ReferFriendPage extends StatelessWidget {
 
                 // Copy Link Button
                 InkWell(
-                  onTap: () {},
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: referral.link));
+                    Get.snackbar('Copied', 'Referral link copied to clipboard', snackPosition: SnackPosition.BOTTOM);
+                  },
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -386,7 +421,7 @@ class ReferFriendPage extends StatelessWidget {
   }
 
   // 3. "SHARE VIA" Section
-  Widget _buildShareViaSection() {
+  Widget _buildShareViaSection(ReferralShareVia shareVia) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -417,7 +452,14 @@ class ReferFriendPage extends StatelessWidget {
                 iconBgColor: const Color(0xFFE8FDF5),
                 iconColor: const Color(0xFF00BC7D),
                 label: 'WhatsApp',
-                onTap: () {},
+                onTap: () async {
+                  final url = Uri.parse(shareVia.whatsapp);
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  } else {
+                    Get.snackbar('Error', 'Could not launch WhatsApp');
+                  }
+                },
               ),
               const SizedBox(width: 10),
               _buildShareOption(
@@ -425,7 +467,14 @@ class ReferFriendPage extends StatelessWidget {
                 iconBgColor: const Color(0xFFFFF0EE),
                 iconColor: const Color(0xFFA41F13),
                 label: 'Email',
-                onTap: () {},
+                onTap: () async {
+                  final url = Uri.parse(shareVia.email);
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  } else {
+                    Get.snackbar('Error', 'Could not launch Email app');
+                  }
+                },
               ),
               const SizedBox(width: 10),
               _buildShareOption(
@@ -433,7 +482,9 @@ class ReferFriendPage extends StatelessWidget {
                 iconBgColor: const Color(0xFFF5F2F0),
                 iconColor: const Color(0xFF6A6460),
                 label: 'Share',
-                onTap: () {},
+                onTap: () {
+                  Share.share(shareVia.shareText);
+                },
               ),
             ],
           ),
@@ -486,7 +537,7 @@ class ReferFriendPage extends StatelessWidget {
   }
 
   // 4. "Referral Progress" Section
-  Widget _buildReferralProgressSection() {
+  Widget _buildReferralProgressSection(ReferralProgress progress, List<ReferralUser> referrals) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -504,16 +555,16 @@ class ReferFriendPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
-                  children: const [
-                    Icon(
+                  children: [
+                    const Icon(
                       Icons.people_outline,
                       color: Color(0xFFA41F13),
                       size: 18,
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
-                      'Referral Progress',
-                      style: TextStyle(
+                      progress.title,
+                      style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF292F36),
@@ -521,9 +572,9 @@ class ReferFriendPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                const Text(
-                  '5 total',
-                  style: TextStyle(
+                Text(
+                  '${progress.goal} total',
+                  style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w400,
                     color: Color(0xFF9A9490),
@@ -542,18 +593,18 @@ class ReferFriendPage extends StatelessWidget {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Text(
-                      '2 joined of 5 invited',
-                      style: TextStyle(
+                      '${progress.joined} joined of ${progress.invited} invited',
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w400,
                         color: Color(0xFF6A6460),
                       ),
                     ),
                     Text(
-                      '40%',
-                      style: TextStyle(
+                      '${progress.percentage}%',
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFFA41F13),
@@ -569,7 +620,7 @@ class ReferFriendPage extends StatelessWidget {
                   child: SizedBox(
                     height: 6,
                     child: LinearProgressIndicator(
-                      value: 0.4,
+                      value: progress.percentage / 100.0,
                       backgroundColor: const Color(0xFFF5E6E4),
                       valueColor: const AlwaysStoppedAnimation<Color>(
                         Color(0xFFA41F13),
@@ -581,16 +632,16 @@ class ReferFriendPage extends StatelessWidget {
 
                 // Star text row
                 Row(
-                  children: const [
-                    Icon(
+                  children: [
+                    const Icon(
                       Icons.star_border,
                       color: Color(0xFFFFB800),
                       size: 12,
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
-                      '3 more joined',
-                      style: TextStyle(
+                      progress.remainingText,
+                      style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w400,
                         color: Color(0xFF9A9490),
@@ -603,50 +654,32 @@ class ReferFriendPage extends StatelessWidget {
           ),
 
           // Users List
-          _buildUserRow(
-            initials: 'MJ',
-            avatarColor: const Color(0xFF00766C),
-            name: 'Mike Johnson',
-            date: 'Apr 12, 2026',
-            statusText: 'Joined & Active',
-            statusColor: const Color(0xFF00BC7D),
-            isTopBorder: true,
-          ),
-          _buildUserRow(
-            initials: 'PS',
-            avatarColor: const Color(0xFF0B2E64),
-            name: 'Priya Sharma',
-            date: 'Mar 28, 2026',
-            statusText: 'Joined & Active',
-            statusColor: const Color(0xFF00BC7D),
-            isTopBorder: true,
-          ),
-          _buildUserRow(
-            initials: 'TW',
-            avatarColor: const Color(0xFFB45309),
-            name: 'Tom Wilson',
-            date: 'Apr 17, 2026',
-            statusText: 'Pending',
-            statusColor: const Color(0xFFF57C00),
-            isTopBorder: true,
-          ),
-          _buildUserRow(
-            initials: 'LH',
-            avatarColor: const Color(0xFF7C3AED),
-            name: 'Layla Hassan',
-            date: 'Apr 15, 2026',
-            statusText: 'Pending',
-            statusColor: const Color(0xFFF57C00),
-            isTopBorder: true,
-          ),
-          _buildUserRow(
-            initials: 'CR',
-            avatarColor: const Color(0xFF6A6460),
-            name: 'Carlos Reyes',
-            date: 'Apr 18, 2026',
-            statusText: 'Invited',
-            statusColor: const Color(0xFF9A9490),
-            isTopBorder: true,
+          if (referrals.isNotEmpty) ...referrals.map((user) {
+            Color statusColor;
+            Color avatarColor;
+            if (user.status.toLowerCase().contains('joined') || user.status.toLowerCase().contains('active')) {
+              statusColor = const Color(0xFF00BC7D);
+              avatarColor = const Color(0xFF00766C); // Example dynamic approach
+            } else if (user.status.toLowerCase().contains('pending')) {
+              statusColor = const Color(0xFFF57C00);
+              avatarColor = const Color(0xFFB45309);
+            } else {
+              statusColor = const Color(0xFF9A9490);
+              avatarColor = const Color(0xFF6A6460);
+            }
+
+            return _buildUserRow(
+              initials: user.initials,
+              avatarColor: avatarColor, // You could randomize this or derive from name hash
+              name: user.name,
+              date: user.date,
+              statusText: user.status,
+              statusColor: statusColor,
+              isTopBorder: true,
+            );
+          }).toList() else const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text("No referrals yet", style: TextStyle(color: Colors.grey, fontSize: 12)),
           ),
         ],
       ),
@@ -683,7 +716,7 @@ class ReferFriendPage extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                initials,
+                initials.isNotEmpty ? initials : name.substring(0, 1),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,

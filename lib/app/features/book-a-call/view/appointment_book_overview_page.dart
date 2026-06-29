@@ -4,9 +4,12 @@ import 'package:get/get.dart';
 import 'package:demo_project/app/core/theme/app_colors.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
 import 'package:demo_project/app/routes/app_routes.dart';
+import 'package:demo_project/app/features/book-a-call/controller/bookcall_controller.dart';
 
 class AppointmentBookOverviewPage extends StatelessWidget {
-  const AppointmentBookOverviewPage({super.key});
+  AppointmentBookOverviewPage({super.key});
+
+  final BookCallController controller = Get.find<BookCallController>();
 
   @override
   Widget build(BuildContext context) {
@@ -73,29 +76,40 @@ class AppointmentBookOverviewPage extends StatelessWidget {
               const SizedBox(height: 12),
 
               // Subtitle
-              RichText(
-                textAlign: TextAlign.center,
-                text: const TextSpan(
-                  text: 'Your Voice Call with ',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: Color(0xFF6A6460),
-                    height: 1.5,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: 'Jordan\nMitchell',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF292F36),
+              Builder(
+                builder: (context) {
+                  final callType = controller.bookCallData.value?.selected?.callTypeLabel ?? "Voice Call";
+                  final managerName = controller.bookCallData.value?.caseManager?.name ?? "Jordan Mitchell";
+                  final names = managerName.split(" ");
+                  final firstName = names.isNotEmpty ? names.first : managerName;
+                  final lastName = names.length > 1 ? names.sublist(1).join(" ") : "";
+                  final nameSpan = lastName.isNotEmpty ? '$firstName\n$lastName' : firstName;
+                  
+                  return RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      text: 'Your $callType with ',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF6A6460),
+                        height: 1.5,
                       ),
+                      children: [
+                        TextSpan(
+                          text: nameSpan,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF292F36),
+                          ),
+                        ),
+                        const TextSpan(
+                          text: ' is confirmed.',
+                        ),
+                      ],
                     ),
-                    TextSpan(
-                      text: ' is confirmed.',
-                    ),
-                  ],
-                ),
+                  );
+                }
               ),
               const SizedBox(height: 32),
 
@@ -114,17 +128,17 @@ class AppointmentBookOverviewPage extends StatelessWidget {
                   children: [
                     _buildDetailRow(
                       Icons.calendar_month_outlined,
-                      'Thu, April 30, 2026',
+                      controller.bookCallData.value?.selected?.dateLabel ?? 'Thu, April 30, 2026',
                     ),
                     const SizedBox(height: 16),
                     _buildDetailRow(
                       Icons.access_time_rounded,
-                      '10:00 AM',
+                      controller.selectedTime.value ?? '10:00 AM',
                     ),
                     const SizedBox(height: 16),
                     _buildDetailRow(
                       Icons.person_outline_rounded,
-                      'Jordan Mitchell',
+                      controller.bookCallData.value?.caseManager?.name ?? 'Jordan Mitchell',
                     ),
                   ],
                 ),
@@ -151,10 +165,10 @@ class AppointmentBookOverviewPage extends StatelessWidget {
                       color: Color(0xFFD97706),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        "You'll receive a reminder notification 30 minutes before your appointment.",
-                        style: TextStyle(
+                        controller.bookCallData.value?.reminder?.message ?? "You'll receive a reminder notification 30 minutes before your appointment.",
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: Color(0xFFB46300),

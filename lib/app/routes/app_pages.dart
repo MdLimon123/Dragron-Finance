@@ -113,7 +113,7 @@ class AppPages {
     ),
         GetPage(
       name: AppRoutes.bookCall,
-      page: () => const BookCallPage(),
+      page: () =>  BookCallPage(),
       binding: BookCallBinding(),
     ),
 
@@ -125,7 +125,7 @@ class AppPages {
 
         GetPage(
       name: AppRoutes.referFriend,
-      page: () => const ReferFriendPage(),
+      page: () =>  ReferFriendPage(),
       binding: ReferBinding(),
     ),  
   ];
