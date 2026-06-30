@@ -2,7 +2,9 @@ import 'package:demo_project/app/core/theme/app_colors.dart';
 import 'package:demo_project/app/core/widget/app_shadow.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
 import 'package:demo_project/app/features/book-a-call/view/appointment_book_overview_page.dart';
+import 'package:demo_project/app/features/liveChat/view/chat_page.dart';
 import 'package:demo_project/app/routes/app_routes.dart';
+import 'package:demo_project/app/features/liveChat/controller/live_chat_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
@@ -750,7 +752,11 @@ class BookCallPage extends StatelessWidget {
                 child: GestureDetector(
                   onTap: () {
                     controller.onCallTypeSelected(1);
-                    Get.toNamed(AppRoutes.liveChat);
+                    final liveChatController = Get.put(LiveChatController(), permanent: true);
+                    liveChatController.startNewChat(
+                      "Support Call", 
+                      ""
+                    );
                   },
                   child: Container(
                     padding: EdgeInsets.symmetric(

@@ -30,6 +30,14 @@ class StorageService {
 
   Future<void> removeToken() => _prefs.remove(StorageKeys.token);
 
+  // User ID
+  String? getUserId() => _prefs.getString(StorageKeys.userId);
+
+  Future<void> saveUserId(String value) =>
+      _prefs.setString(StorageKeys.userId, value);
+
+  Future<void> removeUserId() => _prefs.remove(StorageKeys.userId);
+
   // Theme
   bool getThemeMode() => _prefs.getBool(StorageKeys.themeMode) ?? false;
 

@@ -4,6 +4,7 @@ import 'package:demo_project/app/core/widget/app_shadow.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
 import 'package:get/get.dart';  
 import 'package:demo_project/app/features/liveChat/view/chat_page.dart';
+import 'package:demo_project/app/features/liveChat/controller/live_chat_controller.dart';
  
 
 class LiveChatPage extends StatelessWidget {
@@ -11,6 +12,8 @@ class LiveChatPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final controller = Get.put(LiveChatController(), permanent: true);
+    
     return Scaffold(
       backgroundColor: AppColors.appBackground,
       appBar: const CustomAppBar(),
@@ -51,7 +54,10 @@ class LiveChatPage extends StatelessWidget {
               hasOnlineBadge: true,
               unreadCount: 2,
               onTap: () {
-              Get.to(()=>ChatPage());   
+                controller.startNewChat(
+                  "Document Verification", 
+                  "Hi, I uploaded my bank statement. When will it be reviewed?"
+                );
               },
             ),
             const SizedBox(height: 12),

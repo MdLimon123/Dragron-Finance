@@ -31,6 +31,10 @@ class ApiEndpoints {
  static const String getBookApiEndPoint = "/support/book-call/";
  static const String submitBookingEndPoint = "/support/book-call/";
 
+ static const String createRoomIdEndPoint = "/chat/conversations/";
+
+ static  String getOldAllMessage(String id ) => "/chat/conversations/$id/messages/";
+
   // Products
   static const String products = '/products/';
   static String userById(int id) => '/users/$id';

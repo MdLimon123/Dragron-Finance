@@ -1,13 +1,17 @@
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:demo_project/app/core/theme/app_colors.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
+import 'package:demo_project/app/features/liveChat/controller/live_chat_controller.dart';
 
 class ChatPage extends StatelessWidget {
   const ChatPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final controller = Get.put(LiveChatController(), permanent: true);
+
     return Scaffold(
       backgroundColor: AppColors.appBackground,
       appBar: const CustomAppBar(),
@@ -15,51 +19,84 @@ class ChatPage extends StatelessWidget {
         child: Column(
           children: [
             // Header strip (without the 3 dots as requested)
-            _buildChatHeader(),
+            _buildChatHeader(controller),
 
             // Chat Messages Area
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 20,
-                ),
-                children: [
-                  _buildMessageBubble(
-                    text: "Hello! How can I help you today?",
-                    time: "10:00 AM",
-                    isOutgoing: false,
+              child: Obx(() {
+                if (controller.isChatLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (controller.messages.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No messages yet. Start the conversation!',
+                      style: TextStyle(color: Color(0xFF6B7280)),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  controller: controller.scrollController,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 20,
                   ),
-                  _buildMessageBubble(
-                    text:
-                        "Hi, I uploaded my bank statement. When will it be reviewed?",
-                    time: "10:05 AM",
-                    isOutgoing: true,
-                  ),
-                  _buildMessageBubble(
-                    text:
-                        "Thank you for uploading the document. Our team will review it within 1-2 business days.",
-                    time: "10:07 AM",
-                    isOutgoing: false,
-                  ),
-                  _buildMessageBubble(
-                    text: "We've received your documents. Review in progress.",
-                    time: "10:30 AM",
-                    isOutgoing: false,
-                  ),
-                ],
-              ),
+                  itemCount: controller.messages.length,
+                  itemBuilder: (context, index) {
+                    final message = controller.messages[index];
+                    final isOutgoing = message.sender == null || message.sender?.isAdmin == false;
+
+                    // Format time
+                    String timeString = '';
+                    try {
+                      final DateTime dt = DateTime.parse(message.createdAt).toLocal();
+                      timeString = DateFormat('hh:mm a').format(dt);
+                    } catch (e) {
+                      timeString = '';
+                    }
+
+                    return _buildMessageBubble(
+                      text: message.message,
+                      time: timeString,
+                      isOutgoing: isOutgoing,
+                    );
+                  },
+                );
+              }),
             ),
 
+            // Admin Typing Indicator
+            Obx(() {
+              if (controller.isAdminTyping.value) {
+                return Padding(
+                  padding: const EdgeInsets.only(left: 24.0, bottom: 8.0, top: 4.0),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Admin is typing...',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: const Color(0xFF9A9490),
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            }),
+
             // Bottom Input Bar
-            _buildBottomInputBar(),
+            _buildBottomInputBar(controller),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildChatHeader() {
+  Widget _buildChatHeader(LiveChatController controller) {
     return Container(
       padding: const EdgeInsets.symmetric
       (horizontal: 16, vertical: 10),
@@ -111,17 +148,17 @@ class ChatPage extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  "Jordan Mitchell",
-                  style: TextStyle(
+              children: [
+                Obx(() => Text(
+                  controller.currentConversation.value?.admin?.name ?? "Support",
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF292F36),
                   ),
-                ),
-                SizedBox(height: 2),
-                Text(
+                )),
+                const SizedBox(height: 2),
+                const Text(
                   "Online",
                   style: TextStyle(
                     fontSize: 11,
@@ -206,7 +243,7 @@ class ChatPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomInputBar() {
+  Widget _buildBottomInputBar(LiveChatController controller) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
@@ -238,9 +275,11 @@ class ChatPage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFE0DBD8), width: 1),
               ),
-              child: const TextField(
-                style: TextStyle(fontSize: 13, color: Color(0xFF292F36)),
-                decoration: InputDecoration(
+              child: TextField(
+                controller: controller.messageController,
+                onChanged: controller.onMessageChanged,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF292F36)),
+                decoration: const InputDecoration(
                   hintText: "Type a message...",
                   hintStyle: TextStyle(fontSize: 13, color: Color(0xFF9A9490)),
                   border: InputBorder.none,
@@ -260,7 +299,7 @@ class ChatPage extends StatelessWidget {
             color: const Color(0xFFAD817A),
             shape: const CircleBorder(),
             child: InkWell(
-              onTap: () {},
+              onTap: controller.sendMessage,
               customBorder: const CircleBorder(),
               child: Container(
                 width: 44,
