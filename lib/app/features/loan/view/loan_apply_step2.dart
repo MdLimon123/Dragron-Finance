@@ -7,6 +7,8 @@ import 'package:demo_project/app/features/loan/view/loan_apply_step3.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:demo_project/app/features/loan/controller/loan_controller.dart';
+
 class LoanApplyStep2 extends StatefulWidget {
   const LoanApplyStep2({super.key});
 
@@ -16,6 +18,7 @@ class LoanApplyStep2 extends StatefulWidget {
 
 class _LoanApplyStep2State extends State<LoanApplyStep2> {
   int currentStep = 3;
+  final controller = Get.put(LoanController());
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +88,7 @@ class _LoanApplyStep2State extends State<LoanApplyStep2> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel('Property Value'),
-                              _buildCurrencyField('150,000'),
+                              _buildCurrencyField('150,000', controller.propertyValueController),
                             ],
                           ),
                         ),
@@ -95,7 +98,7 @@ class _LoanApplyStep2State extends State<LoanApplyStep2> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel('Mortgage Balance'),
-                              _buildCurrencyField('45,000'),
+                              _buildCurrencyField('45,000', controller.mortgageBalanceController),
                             ],
                           ),
                         ),
@@ -111,7 +114,7 @@ class _LoanApplyStep2State extends State<LoanApplyStep2> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel('Mortgage Payment'),
-                              _buildCurrencyField('45,000'),
+                              _buildCurrencyField('45,000', controller.mortgagePaymentController),
                             ],
                           ),
                         ),
@@ -121,7 +124,7 @@ class _LoanApplyStep2State extends State<LoanApplyStep2> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel('Mortgage Lender'),
-                              _buildCurrencyField('45,000'),
+                              _buildCurrencyField('45,000', controller.mortgageLenderController),
                             ],
                           ),
                         ),
@@ -137,7 +140,8 @@ class _LoanApplyStep2State extends State<LoanApplyStep2> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel('Term Remaining'),
-                              const CustomTextField(
+                              CustomTextField(
+                                controller: controller.termRemainingController,
                                 hintText: '3 Years',
                                 filled: true,
                                 filColor: Color(0xFFF9FAFB),
@@ -151,7 +155,8 @@ class _LoanApplyStep2State extends State<LoanApplyStep2> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildLabel('Interest Rate'),
-                              const CustomTextField(
+                              CustomTextField(
+                                controller: controller.interestRateController,
                                 hintText: '10%',
                                 filled: true,
                                 filColor: Color(0xFFF9FAFB),
@@ -197,14 +202,15 @@ class _LoanApplyStep2State extends State<LoanApplyStep2> {
                   const SizedBox(width: 16),
                   Expanded(
                     flex: 2,
-                    child: CustomButton(
+                    child: Obx(() => CustomButton(
                       onTap: () {
-                         Get.to(() => const LoanApplyStep3());
+                         controller.submitStep2();
                       },
                       text: 'Continue',
+                      isLoading: controller.isSubmitting.value,
                       color: AppColors.activeColor,
                       icon: const Icon(Icons.chevron_right, color: Colors.white),
-                    ),
+                    )),
                   ),
                 ],
               ),
@@ -230,8 +236,9 @@ class _LoanApplyStep2State extends State<LoanApplyStep2> {
     );
   }
 
-  Widget _buildCurrencyField(String hint) {
+  Widget _buildCurrencyField(String hint, TextEditingController controller) {
     return CustomTextField(
+      controller: controller,
       hintText: hint,
       filled: true,
       filColor: const Color(0xFFF9FAFB),

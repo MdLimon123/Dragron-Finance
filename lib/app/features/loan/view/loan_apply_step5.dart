@@ -2,12 +2,15 @@ import 'package:demo_project/app/core/theme/app_colors.dart';
 import 'package:demo_project/app/core/widget/app_shadow.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
 import 'package:demo_project/app/core/widget/custom_button.dart';
+import 'package:demo_project/app/features/loan/controller/loan_controller.dart';
 import 'package:demo_project/app/features/loan/view/application_submitted.dart';    
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class LoanApplyStep5 extends StatelessWidget {
-  const LoanApplyStep5({super.key});
+  LoanApplyStep5({super.key});
+
+  final controller = Get.put(LoanController());
 
   @override
   Widget build(BuildContext context) {
@@ -48,79 +51,91 @@ class LoanApplyStep5 extends StatelessWidget {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: AppShadow.soft,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Review & Submit',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF101828),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Please review your application before submitting',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF99A1AF),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    
-                    _buildReviewRow('Loan Type', 'Personal Loan'),
-                    _buildReviewRow('Loan Amount', '\$25,000'),
-                    _buildReviewRow('Loan Term', '36 months'),
-                    _buildReviewRow('Est. Rate', '9.5% APR'),
-                    _buildReviewRow('Est. Monthly Payment', '\$801'),
-                    _buildReviewRow('Purpose', 'rsj'),
-                    _buildReviewRow('Employment', 'Full-time Employee'),
-                    _buildReviewRow('Annual Income', '\$45,235'),
-                    _buildReviewRow('Monthly Expenses', '\$32'),
-                    _buildReviewRow('DTI Ratio', '22%'),
-                    
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF9FAFB),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFA41F13),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.check, color: Colors.white, size: 14),
+                  child: Obx(() {
+                    if (controller.isLoading.value) {
+                      return const Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    final data = controller.loanApplicationDetails;
+                    final reviewSummary = data['reviewSummary'] as Map<String, dynamic>? ?? {};
+                    final documents = reviewSummary['documents'] as Map<String, dynamic>? ?? {};
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Review & Submit',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF101828),
                           ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'Documents',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF344054),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Please review your application before submitting',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF99A1AF),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        _buildReviewRow('Loan Type', reviewSummary['loanType']?.toString() ?? '-'),
+                        _buildReviewRow('Loan Amount', '\$${reviewSummary['loanAmount'] ?? '-'}'),
+                        _buildReviewRow('Loan Term', reviewSummary['loanTerm']?.toString() ?? '-'),
+                        _buildReviewRow('Est. Rate', reviewSummary['estimatedRate']?.toString() ?? '-'),
+                        _buildReviewRow('Est. Monthly Payment', '\$${reviewSummary['estimatedMonthlyPayment'] ?? '-'}'),
+                        _buildReviewRow('Purpose', data['notes']?.toString() ?? '-'),
+                        _buildReviewRow('Employment', reviewSummary['employment']?.toString() ?? '-'),
+                        _buildReviewRow('Annual Income', '\$${reviewSummary['annualIncome'] ?? '-'}'),
+                        _buildReviewRow('DTI Ratio', reviewSummary['dtiRatioDisplay']?.toString() ?? '-'),
+                        
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF9FAFB),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFA41F13),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.check, color: Colors.white, size: 14),
                               ),
-                            ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  'Documents',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF344054),
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                documents['uploadedText']?.toString() ?? '0/0 uploaded',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFFA41F13),
+                                ),
+                              ),
+                            ],
                           ),
-                          const Text(
-                            '1/5 uploaded',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFFA41F13),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                        ),
+                      ],
+                    );
+                  }),
               ),
               const SizedBox(height: 40),
               Row(
@@ -155,13 +170,14 @@ class LoanApplyStep5 extends StatelessWidget {
                   const SizedBox(width: 16),
                   Expanded(
                     flex: 2,
-                    child: CustomButton(
+                    child: Obx(() => CustomButton(
                       onTap: () {
-                        Get.to(() => const ApplicationSubmitted());
+                        controller.finalApplicationSubmit();
                       },
                       text: 'Submit Application',
+                      isLoading: controller.isSubmitting.value,
                       color: const Color(0xFFA41F13),
-                    ),
+                    )),
                   ),
                 ],
               ),

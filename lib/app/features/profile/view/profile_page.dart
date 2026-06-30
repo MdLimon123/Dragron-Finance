@@ -91,6 +91,54 @@ class ProfilePage extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 32),
+
+              // Logout Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // Show confirmation dialog before logging out
+                    Get.dialog(
+                      AlertDialog(
+                        title: const Text('Log out'),
+                        content: const Text('Are you sure you want to log out?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Get.back(),
+                            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Get.back(); // close dialog
+                              controller.logout();
+                            },
+                            child: const Text('Log out', style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.logout, color: Colors.red),
+                  label: const Text(
+                    'Log out',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.withValues(alpha: 0.1),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: Colors.red.withValues(alpha: 0.3)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
             ],
           ),
         );

@@ -1,6 +1,7 @@
 import 'package:demo_project/app/core/theme/app_colors.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
-import 'package:demo_project/app/core/widget/custom_button.dart'; 
+import 'package:demo_project/app/core/widget/custom_button.dart';
+import 'package:demo_project/app/features/loan/view/loan_apply_step6.dart'; 
 import 'package:demo_project/app/features/loan/view/upload_document_page.dart';  
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -111,7 +112,7 @@ class ApplicationSubmitted extends StatelessWidget {
               // Upload Documents Button
               CustomButton(
                 onTap: () {
-                    Get.to(() => const UploadDocumentPage());
+                    Get.to(() => const LoanApplyStep6());
                 },
                 text: 'Upload Documents',
                 color: const Color(0xFFA41F13),

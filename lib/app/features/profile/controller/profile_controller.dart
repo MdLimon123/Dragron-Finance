@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:demo_project/app/core/storage/storage_service.dart';
+import 'package:demo_project/app/routes/app_routes.dart';
 import 'package:demo_project/app/core/network/api_endpoints.dart';
 import 'package:demo_project/app/core/network/api_exception.dart';
 import 'package:demo_project/app/core/network/base_api_service.dart';
@@ -120,4 +122,17 @@ Future<void> updateProfileData() async {
     isUpdating(false);
   }
 }
+
+  Future<void> logout() async {
+    try {
+      await _baseApiService.post(ApiEndpoints.logout);
+    } catch (e) {
+      print("Logout API error: $e");
+    } finally {
+      final storage = StorageService();
+      await storage.removeToken();
+      await storage.removeUserId();
+      Get.offAllNamed(AppRoutes.login);
+    }
+  }
 }

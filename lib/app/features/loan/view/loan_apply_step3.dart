@@ -7,6 +7,8 @@ import 'package:demo_project/app/features/loan/view/loan_apply_step4.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:demo_project/app/features/loan/controller/loan_controller.dart';
+
 class LoanApplyStep3 extends StatefulWidget {
   const LoanApplyStep3({super.key});
 
@@ -16,7 +18,7 @@ class LoanApplyStep3 extends StatefulWidget {
 
 class _LoanApplyStep3State extends State<LoanApplyStep3> {
   int currentStep = 4;
-  String selectedEmploymentType = 'Employed';
+  final controller = Get.put(LoanController());
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +80,7 @@ class _LoanApplyStep3State extends State<LoanApplyStep3> {
                     ),
                     const SizedBox(height: 24),
                     _buildLabel('Employment Type'),
-                    Wrap(
+                    Obx(() => Wrap(
                       spacing: 12,
                       runSpacing: 12,
                       children: [
@@ -86,10 +88,11 @@ class _LoanApplyStep3State extends State<LoanApplyStep3> {
                         _buildTypeButton('Self-employed'),
                         _buildTypeButton('Other'),
                       ],
-                    ),
+                    )),
                     const SizedBox(height: 24),
                     _buildLabel('Annual Income *'),
                     CustomTextField(
+                      controller: controller.annualIncomeController,
                       hintText: '85,000',
                       filled: true,
                       filColor: const Color(0xFFF9FAFB),
@@ -141,14 +144,15 @@ class _LoanApplyStep3State extends State<LoanApplyStep3> {
                   const SizedBox(width: 16),
                   Expanded(
                     flex: 2,
-                    child: CustomButton(
+                    child: Obx(() => CustomButton(
                       onTap: () {
-                        Get.to(() => const LoanApplyStep4());
+                        controller.submitStep3();
                       },
                       text: 'Continue',
+                      isLoading: controller.isSubmitting.value,
                       color: AppColors.activeColor,
                       icon: const Icon(Icons.chevron_right, color: Colors.white),
-                    ),
+                    )),
                   ),
                 ],
               ),
@@ -175,12 +179,10 @@ class _LoanApplyStep3State extends State<LoanApplyStep3> {
   }
 
   Widget _buildTypeButton(String type) {
-    bool isSelected = selectedEmploymentType == type;
+    bool isSelected = controller.selectedEmploymentType.value == type;
     return GestureDetector(
       onTap: () {
-        setState(() {
-          selectedEmploymentType = type;
-        });
+        controller.selectedEmploymentType.value = type;
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

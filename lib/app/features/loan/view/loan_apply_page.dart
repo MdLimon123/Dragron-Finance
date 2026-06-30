@@ -121,17 +121,18 @@ class _LoanApplyPageState extends State<LoanApplyPage> {
               ),
             ),
             const SizedBox(height: 40),
-            CustomButton(
+            Obx(() => CustomButton(
               onTap: () {
-                Get.to(() => LoanApplyStep1());
+                controller.createLoanApplication();
               },
               text: 'Continue',
+              isLoading: controller.isSubmitting.value,
               color: AppColors.activeColor,
               icon: const Icon(
                 Icons.chevron_right,
                 color: Colors.white,
               ),
-            ),
+            )),
             const SizedBox(height: 20),
           ],
         ),

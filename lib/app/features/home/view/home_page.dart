@@ -1,5 +1,6 @@
 import 'package:demo_project/app/core/theme/app_colors.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
+import 'package:demo_project/app/features/e-sign-agreement/view/all_esign_agreement.dart';
 import 'package:demo_project/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -132,7 +133,7 @@ class HomePage extends StatelessWidget {
                     SizedBox(width: 8),
                     _quickActionItem(
                       onTap: () {
-                        Get.toNamed(AppRoutes.eSignAgreement);
+                        Get.to(()=> AllEsignAgreement());
                       },
                       icon: 'assets/icon/e-sign.svg',
                       title: 'E-Sign',

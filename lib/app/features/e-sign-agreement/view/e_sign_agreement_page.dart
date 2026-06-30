@@ -1,7 +1,14 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
+import 'package:flutter/rendering.dart';
 import 'package:demo_project/app/core/theme/app_colors.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
+import 'package:demo_project/app/features/e-sign-agreement/model/my_loan_model.dart';
 import 'package:demo_project/app/features/e-sign-agreement/view/document_overview_page.dart';
 import 'package:demo_project/app/features/e-sign-agreement/view/signature_painter.dart';
+import 'package:demo_project/app/features/e-sign-agreement/controller/esign_controller.dart';
+import 'package:demo_project/app/features/e-sign-agreement/model/agreement_details_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
@@ -14,25 +21,86 @@ class ESignAgreementPage extends StatefulWidget {
 }
 
 class _ESignAgreementPageState extends State<ESignAgreementPage> {
-  final List<bool> _expanded = [false, false, false];
+  late final MyLoanModel loan;
+  final EsignController _esignController = Get.find<EsignController>();
+  AgreementDetailsModel? _agreementDetails;
+  bool _isLoadingDetails = true;
+  bool _isSubmitting = false;
+  final GlobalKey _signatureKey = GlobalKey();
 
-  final List<Map<String, String>> _sections = [
-    {
-      'title': '1. Loan Amount',
-      'body':
-          'This is the loan amount — the total amount of money you borrow from a lender, before interest and fees are added.',
-    },
-    {
-      'title': '2. Interest Rate & Repayments',
-      'body':
-          'The interest rate is the percentage a lender charges for borrowing money, determining how much extra you pay on top of the loan, while repayments are the regular payments you make over time to pay back both the original amount borrowed and the added interest.',
-    },
-    {
-      'title': '3. Security Address',
-      'body':
-          'The security address is the property linked to a loan that acts as a form of assurance for the lender, meaning it\'s simply the place connected to the loan.',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    loan = Get.arguments as MyLoanModel;
+    _fetchAgreementDetails();
+  }
+
+  Future<void> _fetchAgreementDetails() async {
+    final details = await _esignController.fetchAgreementDetails(loan.id);
+    if (mounted) {
+      setState(() {
+        _agreementDetails = details;
+        _isLoadingDetails = false;
+        if (details != null) {
+          _expanded = List.filled(details.sections.length, false);
+          if (_expanded.isNotEmpty) _expanded[0] = true;
+        }
+      });
+    }
+  }
+
+  Future<void> _submitSignature() async {
+    setState(() => _isSubmitting = true);
+    
+    try {
+      RenderRepaintBoundary boundary = _signatureKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      Uint8List pngBytes = byteData!.buffer.asUint8List();
+
+      final tempDir = Directory.systemTemp;
+      final file = File('${tempDir.path}/signature_${DateTime.now().millisecondsSinceEpoch}.png');
+      await file.writeAsBytes(pngBytes);
+
+      final applicationId = _agreementDetails!.application?.id ?? loan.id;
+      final success = await _esignController.submitSignature(applicationId, file, _agreed);
+      
+      if (success && mounted) {
+        Get.snackbar(
+          "Success", 
+          "Signature submitted successfully",
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
+        Get.off(() => const DocumentOverviewPage()); // Or another success page
+      } else if (mounted) {
+        Get.snackbar(
+          "Error", 
+          "Failed to submit signature",
+          backgroundColor: Colors.red.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      print("Error capturing signature: $e");
+      if (mounted) {
+        Get.snackbar(
+          "Error", 
+          "An error occurred while submitting",
+          backgroundColor: Colors.red.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  List<bool> _expanded = [false, false, false];
+
+
 
   final List<List<Offset?>> _strokes = [];
   List<Offset?> _currentStroke = [];
@@ -58,11 +126,18 @@ class _ESignAgreementPageState extends State<ESignAgreementPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHomeLoanCard(),
-
-                    SizedBox(height: 20),
-                    _documentPreview(),
-                    SizedBox(height: 20),
+                    _isLoadingDetails 
+                        ? const Center(child: CircularProgressIndicator()) 
+                        : _agreementDetails == null 
+                            ? const Text('Failed to load document details')
+                            : Column(
+                                children: [
+                                  _buildHomeLoanCard(),
+                                  const SizedBox(height: 20),
+                                  _documentPreview(),
+                                ],
+                              ),
+                    const SizedBox(height: 20),
 
                     _signature(),
                     SizedBox(height: 20),
@@ -232,9 +307,15 @@ class _ESignAgreementPageState extends State<ESignAgreementPage> {
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(10),
                       ),
-                      child: CustomPaint(
-                        painter: SignaturePainter(_strokes),
-                        child: Container(),
+                      child: RepaintBoundary(
+                        key: _signatureKey,
+                        child: Container(
+                          color: const Color(0xFFFAF5F1), // Make sure background is opaque for image capture
+                          child: CustomPaint(
+                            painter: SignaturePainter(_strokes),
+                            child: Container(),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -404,10 +485,10 @@ class _ESignAgreementPageState extends State<ESignAgreementPage> {
               ),
               child: Row(
                 children: [
-                  Expanded(child: _buildParty('BORROWER', 'Sarah Johnson')),
+                  Expanded(child: _buildParty('BORROWER', _agreementDetails!.borrower?.name ?? '')),
 
                   Expanded(
-                    child: _buildParty('LENDER', 'LoanSphere Financial Ltd.'),
+                    child: _buildParty('LENDER', _agreementDetails!.lender?.name ?? ''),
                   ),
                 ],
               ),
@@ -417,8 +498,8 @@ class _ESignAgreementPageState extends State<ESignAgreementPage> {
           const Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E0DC)),
 
           // Accordion Sections
-          ...List.generate(_sections.length, (i) {
-            final isLast = i == _sections.length - 1;
+          ...List.generate(_agreementDetails!.sections.length, (i) {
+            final isLast = i == _agreementDetails!.sections.length - 1;
             return Column(
               children: [
                 _buildAccordionItem(i),
@@ -503,6 +584,16 @@ class _ESignAgreementPageState extends State<ESignAgreementPage> {
 
 
   Widget _buildHomeLoanCard() {
+    if (_agreementDetails == null) return const SizedBox.shrink();
+
+    final loanType = _agreementDetails!.loanSummary?.loanType ?? _agreementDetails!.application?.loanType ?? 'Home Loan';
+    final applicationNumber = _agreementDetails!.loanSummary?.applicationNumber ?? _agreementDetails!.application?.applicationNumber ?? 'N/A';
+    final statusLabel = _agreementDetails!.statusLabel.isNotEmpty ? _agreementDetails!.statusLabel : (_agreementDetails!.status == 'approved' ? 'Awaiting Signature' : _agreementDetails!.status);
+    final loanAmountDisplay = _agreementDetails!.loanSummary?.loanAmountDisplay ?? '\$0.00';
+    final loanTerm = _agreementDetails!.loanSummary?.loanTerm ?? 'N/A';
+    final interestRate = _agreementDetails!.loanSummary?.interestRate ?? 'N/A';
+    final monthlyPaymentDisplay = _agreementDetails!.loanSummary?.monthlyPaymentDisplay ?? '\$0.00';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -540,13 +631,8 @@ class _ESignAgreementPageState extends State<ESignAgreementPage> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFFEADAD6), width: 1),
             ),
-            child: Center(
-              child: SvgPicture.asset(
-                'assets/icon/docs.svg',
-                width: 24,
-                height: 24,
-                color: const Color(0xFFA41F13),
-              ),
+            child: const Center(
+              child: Icon(Icons.description, color: Color(0xFFA41F13)),
             ),
           ),
           const SizedBox(width: 12),
@@ -562,19 +648,19 @@ class _ESignAgreementPageState extends State<ESignAgreementPage> {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
-                            'Home Loan',
-                            style: TextStyle(
+                            loanType,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF292F36),
                             ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            'Ref: LS-2024-001',
-                            style: TextStyle(
+                            'Ref: $applicationNumber',
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF6A6460),
                               fontWeight: FontWeight.w400,
@@ -598,30 +684,34 @@ class _ESignAgreementPageState extends State<ESignAgreementPage> {
                           width: 1.2,
                         ),
                       ),
-                      child: const Text(
-                        'Awaiting Signature',
-                        style: TextStyle(
+                      child: Text(
+                        statusLabel,
+                        style: const TextStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.w400,
-                          color: Color(0xFFBB4D00),
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFB57017),
                         ),
                       ),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
 
+                // Stats Row
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(child: _buildStat('AMOUNT', '\$350,000')),
-                    Expanded(child: _buildStat('TERM', '30 years')),
+                    _buildStat('AMOUNT', loanAmountDisplay),
+                    _buildStat('TERM', loanTerm),
                   ],
                 ),
+                const SizedBox(height: 12),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(child: _buildStat('RATE', '6.75%')),
-                    Expanded(child: _buildStat('MONTHLY', '\$2,270')),
+                    _buildStat('RATE', interestRate),
+                    _buildStat('MONTHLY', monthlyPaymentDisplay),
                   ],
                 ),
               ],
@@ -688,7 +778,7 @@ class _ESignAgreementPageState extends State<ESignAgreementPage> {
   }
 
   Widget _buildAccordionItem(int index) {
-    final section = _sections[index];
+    final section = _agreementDetails!.sections[index];
     final isOpen = _expanded[index];
 
     return Column(
@@ -703,7 +793,7 @@ class _ESignAgreementPageState extends State<ESignAgreementPage> {
               children: [
                 Expanded(
                   child: Text(
-                    section['title']!,
+                    section.title,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -729,7 +819,7 @@ class _ESignAgreementPageState extends State<ESignAgreementPage> {
           secondChild: Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, bottom: 14),
             child: Text(
-              section['body']!,
+              section.description,
               style: const TextStyle(
                 fontSize: 12,
                 color: Color(0xFF6A6460),
@@ -798,17 +888,32 @@ class _ESignAgreementPageState extends State<ESignAgreementPage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          onTap: () {
-            Get.to(() => const DocumentOverviewPage());
+          onTap: _isSubmitting ? null : () {
+            if (_strokes.isEmpty) {
+              Get.snackbar("Error", "Please draw your signature", backgroundColor: Colors.red.withValues(alpha: 0.8), colorText: Colors.white);
+              return;
+            }
+            if (!_agreed) {
+              Get.snackbar("Error", "Please agree to the terms", backgroundColor: Colors.red.withValues(alpha: 0.8), colorText: Colors.white);
+              return;
+            }
+            _submitSignature();
           },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SvgPicture.asset('assets/icon/agree.svg'),
-              SizedBox(width: 6),
+              if (_isSubmitting)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                )
+              else
+                SvgPicture.asset('assets/icon/agree.svg'),
+              const SizedBox(width: 6),
               Text(
-                ' Agree & Sign Document',
-                style: TextStyle(
+                _isSubmitting ? ' Submitting...' : ' Agree & Sign Document',
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,

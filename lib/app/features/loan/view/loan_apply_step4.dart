@@ -2,9 +2,11 @@ import 'package:demo_project/app/core/theme/app_colors.dart';
 import 'package:demo_project/app/core/widget/app_shadow.dart';
 import 'package:demo_project/app/core/widget/custom_appbar.dart';
 import 'package:demo_project/app/core/widget/custom_button.dart';
-import 'package:demo_project/app/features/loan/view/loan_apply_step5.dart';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import 'package:demo_project/app/features/loan/controller/loan_controller.dart';
 
 class LoanApplyStep4 extends StatefulWidget {
   const LoanApplyStep4({super.key});
@@ -15,13 +17,7 @@ class LoanApplyStep4 extends StatefulWidget {
 
 class _LoanApplyStep4State extends State<LoanApplyStep4> {
   int currentStep = 5;
-  // Store answers for the questions
-  final Map<int, bool?> _answers = {
-    0: true,  // Defaulting first one to 'Yes' as in design
-    1: true,
-    2: true,
-    3: true,
-  };
+  final controller = Get.put(LoanController());
 
   @override
   Widget build(BuildContext context) {
@@ -128,14 +124,15 @@ class _LoanApplyStep4State extends State<LoanApplyStep4> {
                   const SizedBox(width: 16),
                   Expanded(
                     flex: 2,
-                    child: CustomButton(
+                    child: Obx(() => CustomButton(
                       onTap: () {
-                        Get.to(() => const LoanApplyStep5());
+                        controller.submitStep4();
                       },
                       text: 'Continue',
+                      isLoading: controller.isSubmitting.value,
                       color: AppColors.activeColor,
                       icon: const Icon(Icons.chevron_right, color: Colors.white),
-                    ),
+                    )),
                   ),
                 ],
               ),
@@ -152,60 +149,76 @@ class _LoanApplyStep4State extends State<LoanApplyStep4> {
     required String question,
     required String subtext,
   }) {
-    bool? answer = _answers[index];
+    return Obx(() {
+      bool? answer;
+      if (index == 0) answer = controller.hasCcj.value;
+      if (index == 1) answer = controller.hasDefaults.value;
+      if (index == 2) answer = controller.hasActiveDmp.value;
+      if (index == 3) answer = controller.hasActiveIva.value;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: AppShadow.soft,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            question,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF101828),
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtext,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF99A1AF),
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _buildSelectionButton(
-                  label: 'Yes',
-                  isSelected: answer == true,
-                  onTap: () => setState(() => _answers[index] = true),
-                ),
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: AppShadow.soft,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              question,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF101828),
+                height: 1.3,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildSelectionButton(
-                  label: 'No',
-                  isSelected: answer == false,
-                  onTap: () => setState(() => _answers[index] = false),
-                ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtext,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF99A1AF),
+                height: 1.4,
               ),
-            ],
-          ),
-        ],
-      ),
-    );
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSelectionButton(
+                    label: 'Yes',
+                    isSelected: answer == true,
+                    onTap: () {
+                      if (index == 0) controller.hasCcj.value = true;
+                      if (index == 1) controller.hasDefaults.value = true;
+                      if (index == 2) controller.hasActiveDmp.value = true;
+                      if (index == 3) controller.hasActiveIva.value = true;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildSelectionButton(
+                    label: 'No',
+                    isSelected: answer == false,
+                    onTap: () {
+                      if (index == 0) controller.hasCcj.value = false;
+                      if (index == 1) controller.hasDefaults.value = false;
+                      if (index == 2) controller.hasActiveDmp.value = false;
+                      if (index == 3) controller.hasActiveIva.value = false;
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildSelectionButton({
